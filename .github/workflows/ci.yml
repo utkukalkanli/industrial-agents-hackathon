@@ -1,0 +1,176 @@
+# Continuous integration (docs/guides/ci-cd.md): every pull request and every push to dev (deploy.yml calls this
+# workflow first for main; other branches are checked through their pull request, so nothing runs twice). Three gates in parallel: Python unit + dataset regression tests, Postgres integration
+# (Supabase migrations + live store tests + API smoke test), frontend lint + typecheck + build. A pull request from
+# this repository then gets a Vercel preview deployment, smoke-tested, with its URL in a PR comment.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  # one run per branch / PR; a newer push cancels the older run (deploy.yml runs this with its own group)
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash  # bash -eo pipefail: a failing command before `| tail` / `| tee` fails the step
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
+  UV_VERSION: "0.13.5"
+  SUPABASE_CLI_VERSION: "2.122.0"
+  VERCEL_CLI_VERSION: "65.2.0"
+  GUIDE_LLM: offline  # never call a model from CI: the offline Guide answers deterministically
+
+jobs:
+  python:
+    name: Python tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Doc links
+        run: uv run python scripts/check_links.py
+      - name: Unit + dataset regression tests
+        # includes the whole-dataset checks (solvers on train+dev, warm-up routes, benchmark replies)
+        run: uv run pytest -q -n auto --durations=15
+
+  integration:
+    name: Integration (Postgres + API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # the service container speaks no TLS; the Supabase CLI tries it unless told not to
+      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Apply migrations (the same command deploy.yml runs against production)
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --include-all --yes
+      - name: Migrations are fully applied (a second push has nothing to do)
+        run: |
+          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run --yes 2>&1 | tee push.log
+          if grep -q "\.sql" push.log; then echo "::error::migrations left after a push"; exit 1; fi
+      - name: Live Postgres store tests
+        env:
+          PERSIST_LIVE_TEST: "1"
+        run: uv run pytest -q -k live_postgres -rs
+      - name: API smoke test against Postgres
+        run: |
+          uv run uvicorn backend.app:app --port 8000 > uvicorn.log 2>&1 &
+          uv run python scripts/smoke_test.py http://127.0.0.1:8000 --chat
+      - name: Server log
+        if: always()
+        run: cat uvicorn.log || true
+
+  frontend:
+    name: Frontend lint + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash  # job-level defaults replace the workflow's, so repeat it
+        working-directory: frontend/app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - name: Typecheck + build
+        run: npm run build
+
+  preview:
+    name: Vercel preview
+    needs: [python, integration, frontend]
+    # same-repo PRs only: a fork's PR gets no secrets
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Vercel secrets present
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            [ -n "${!name}" ] || { echo "::error::secret $name is not set (docs/guides/ci-cd.md)"; exit 1; }
+          done
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install --global vercel@${{ env.VERCEL_CLI_VERSION }}
+      - name: Deploy preview
+        id: deploy
+        # Vercel builds remotely (vercel.json Services); the build log is printed into this job
+        run: |
+          url=$(vercel deploy --yes --archive=tgz --logs --token "$VERCEL_TOKEN" \
+                  --meta githubCommitSha=${{ github.event.pull_request.head.sha }} \
+                  --meta githubPrId=${{ github.event.pull_request.number }} | tail -n 1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Smoke test the preview
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: uv run --no-project python scripts/smoke_test.py "${{ steps.deploy.outputs.url }}" --frontend
+      - name: Comment the preview URL on the PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const marker = "<!-- vercel-preview -->";
+            const body = `${marker}\n**Vercel preview** (smoke test passed): ${process.env.URL}\n\nCommit ${process.env.SHA}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const old = comments.find((c) => c.body?.startsWith(marker));
+            if (old) await github.rest.issues.updateComment({ owner, repo, comment_id: old.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });

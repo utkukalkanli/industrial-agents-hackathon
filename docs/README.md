@@ -70,6 +70,7 @@ Back to [CLAUDE.md](../CLAUDE.md) · Live state lives in [memory-bank/](../memor
 
 ### Guides
 - [guides/commands.md](guides/commands.md) — setup, chat, evaluate, score, produce submission.
+- [guides/ci-cd.md](guides/ci-cd.md) — GitHub Actions CI (tests, Postgres integration, frontend build) and deploys to our own Supabase + Vercel; one-time setup, secrets, rollback.
 - [guides/demo-runbook.md](guides/demo-runbook.md) — demo video (2 min) and final pitch: building, exact lines, expected answers, checklist.
 - [guides/dev-workflow.md](guides/dev-workflow.md) — verified commits: worklog claims → verifier agent → fixer loop → hook-enforced stamp.
 - [guides/glossary.md](guides/glossary.md) — shared vocabulary.

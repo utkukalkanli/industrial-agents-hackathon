@@ -10,6 +10,29 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 Template: `## YYYY-MM-DD HH:MM — title` then *Did / Learned / Changed docs / Opened-closed Q / Next*.
 
+## 2026-10-25 — CI/CD: first GitHub run of PR #2
+
+- **Did:** pushed `ci-cd`, opened PR #2 (repo now detached from Atahan's fork network). First run 40218266044:
+  Python tests and frontend pass (~2.5 min on GitHub), integration failed — `supabase db push` tried TLS against
+  the `postgres:17` service ("does not accept TLS"). Fixed: `?sslmode=disable` in the job's URL. CI also ran twice
+  per PR commit (push + pull_request) → push now triggers CI only on `dev`.
+- **Next:** watch the next run (migrations, live store tests, smoke test have not run on GitHub yet); Utku sets up
+  the Supabase/Vercel secrets ([ci-cd.md](../docs/guides/ci-cd.md#one-time-setup)); decide whether to drop `/ship`
+  now that CI gates PRs.
+
+## 2026-10-25 — CI/CD: GitHub Actions → our own Supabase + Vercel (branch `ci-cd`, not pushed)
+
+- **Did:** `origin` → utkukalkanli/industrial-agents-hackathon (old one kept as `upstream`; no upstream-only
+  commits). Worktree `../iah-ci-cd` on branch `ci-cd` from `origin/main`. Added `.github/workflows/ci.yml`
+  (python, integration, frontend, preview), `deploy.yml` (ci → migrate → deploy → promote), `dependabot.yml`,
+  `scripts/smoke_test.py`, `.vercelignore`, `pytest-xdist` (dev), `vercel.json` git deploys off;
+  [ci-cd.md](../docs/guides/ci-cd.md), [D-024](decisions.md#d-024).
+- **Learned:** full suite 1088 passed / 2 skipped, ~6 min serial, ~3.6 min with `-n auto` locally (the
+  whole-dataset tests take 2–4 min each); migrations are plain Postgres (no Supabase roles), so CI applies them to
+  `postgres:17`; `setup-uv` publishes no major tags (pin full versions). Docker was not running locally: the
+  integration job is only checked on GitHub.
+- **Next:** push `ci-cd`, open a PR on the fork, fill the secrets ([ci-cd.md](../docs/guides/ci-cd.md#one-time-setup)).
+
 
 ## 2026-10-25 — Map list: "New building from floor plans / Create →" row styled again
 
