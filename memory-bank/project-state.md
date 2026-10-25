@@ -70,8 +70,12 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   (per-source data licences) — [D-009](decisions.md#d-009) accepted.
 - Verified-commit workflow in `.claude/` (verifier + fixer agents, `/ship` skill, commit-gate hook, worklog) —
   [D-008](decisions.md#d-008), [dev-workflow.md](../docs/guides/dev-workflow.md).
-- Git: `main`; `origin` = https://github.com/atahankilc/industrial-agents-hackathon.git (public); first commit
-  `3300e6c` pushed to `origin/main`.
+- Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git (Utku's repo, detached from
+  Atahan's fork network 2026-10-25); local remote `upstream` = https://github.com/atahankilc/industrial-agents-hackathon.git (read only).
+- CI/CD (2026-10-25, [D-024](decisions.md#d-024), branch `ci-cd`, not pushed yet): GitHub Actions `ci.yml` (pytest +
+  dataset regression, Postgres integration + smoke test, frontend lint/build, PR previews) and `deploy.yml` (`main` →
+  Supabase migrations → Vercel production → smoke test → promote) on our own accounts. Setup + secrets:
+  [ci-cd.md](../docs/guides/ci-cd.md). Not yet run on GitHub.
 
 ## What works (verified 2026-10-24)
 

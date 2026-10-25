@@ -1,0 +1,15 @@
+# Not uploaded by `vercel deploy` (CI): what neither service reads. Mirrors vercel.json's excludeFiles for the api
+# function, so the upload is ~50 MB instead of ~215 MB; frontend/app/ stays (the web service builds it).
+.claude/
+.github/
+archive/
+docs/
+memory-bank/
+tests/
+upstream-challenge/
+agent_output/
+*.pdf
+data/**/*.png
+data/**/*.svg
+data/**/*.jsonl
+data/**/equipment.csv

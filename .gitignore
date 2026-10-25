@@ -23,3 +23,6 @@ dist/
 
 # OSM API responses cached by scripts/fit_locations.py
 .cache/
+
+# Supabase CLI scratch files (supabase db push)
+supabase/.temp/

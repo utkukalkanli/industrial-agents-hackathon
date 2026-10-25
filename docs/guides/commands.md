@@ -2,7 +2,7 @@
 id: guide-commands
 summary: Setup and every command for chatting, evaluating on dev, scoring and producing the test submission.
 sources: [archive/initial-repo/README.md §5-6, archive/initial-repo/starter_agent/README.md, benchmark/evaluate.py, backend/app.py, agent/run_benchmark.py, agent/run_benchmark_v1.py, agent/guide_v1/__main__.py, SUBMISSION/BENCHMARK.md]
-related: [../kit/starter-agent.md, ../challenge/scoring.md]
+related: [../kit/starter-agent.md, ../challenge/scoring.md, ci-cd.md]
 ---
 
 # Commands
@@ -211,6 +211,9 @@ Guide tool directly, read or reset a session's routing state) remain for tests (
 scripts; no UI calls them.
 
 ## Deploy (Vercel)
+
+On our own accounts, deploys run from GitHub Actions after CI passes: [ci-cd.md](ci-cd.md). The notes below
+are the manual / first-deploy reference.
 
 One Vercel project, two [Services](https://vercel.com/docs/services) in [`vercel.json`](../../vercel.json) (D-006):
 `web` = the Vite app in `frontend/app/`, `api` = FastAPI `backend.app:app` from the repo root. The rewrite

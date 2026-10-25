@@ -6,7 +6,7 @@ related: [open-questions.md, project-state.md, ../docs/architecture/overview.md]
 
 # Decisions
 
-[Memory bank](README.md) · Next free id: **D-024**
+[Memory bank](README.md) · Next free id: **D-025**
 
 Template:
 
@@ -376,3 +376,19 @@ Template:
   turned only by quarter turns of the angle that keeps their walls parallel to the lowest floor's.
 - **Consequences:** only the coordinate goes to Overpass; Overpass outages fall back to the map's tiles. Design:
   [plan-reference-and-location-design.md](../docs/superpowers/specs/2026-10-25-plan-reference-and-location-design.md).
+
+<a id="d-024"></a>
+### D-024 — CI/CD on GitHub Actions, deploying to our own Supabase + Vercel
+- **Status:** proposed · **Date:** 2026-10-25 · **By:** Utku (asked for production-quality CI/CD on own accounts; defaults by Claude)
+- **Context:** The repo moved to Utku's fork (`origin` = utkukalkanli/industrial-agents-hackathon, `upstream` =
+  Atahan's). The app was deployed by Atahan on his Vercel + Supabase with Vercel Git deploys and no CI.
+- **Decision:** GitHub Actions runs CI on every PR / push (pytest incl. dataset regression with xdist, Postgres
+  integration via `supabase db push` on a service container + live store tests + API smoke test, frontend lint +
+  build) and deploys: same-repo PRs → Vercel preview + smoke test; `main` → migrations on our Supabase → Vercel
+  production with `--skip-domain` → smoke test → `vercel promote`. Vercel Git deploys off (`vercel.json`), actions
+  pinned to SHAs, Dependabot weekly. CI never calls a model (`GUIDE_LLM=offline`).
+- **Consequences:** deploys need the GitHub secrets in [ci-cd.md](../docs/guides/ci-cd.md#3-github-repo-settings);
+  migrations must stay additive; `git.deploymentEnabled: false` turns off Vercel Git deploys for this `vercel.json`
+  (the repo is detached from Atahan's, so his deployment is unaffected).
+- **Evidence:** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `scripts/smoke_test.py`,
+  [ci-cd.md](../docs/guides/ci-cd.md).

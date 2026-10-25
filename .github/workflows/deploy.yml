@@ -1,0 +1,103 @@
+# Continuous deployment (docs/guides/ci-cd.md): a push to main runs the whole CI (ci.yml), then applies new Supabase
+# migrations to the production database, deploys to Vercel production and smoke-tests the live URL. Order matters:
+# migrations are additive ("if not exists"), so the old deployment keeps working while they run. One production
+# deploy at a time; a newer push waits instead of cancelling a deploy half way.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash  # bash -eo pipefail: a failing command before `| tail` / `| tee` fails the step
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
+  UV_VERSION: "0.13.5"
+  SUPABASE_CLI_VERSION: "2.122.0"
+  VERCEL_CLI_VERSION: "65.2.0"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    # a called workflow may only narrow the caller's token; ci.yml's preview job (skipped on push) asks for this
+    permissions:
+      contents: read
+      pull-requests: write
+
+  migrate:
+    name: Supabase migrations
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      # Session pooler (port 5432) or direct connection URI, percent-encoded; not the transaction pooler (6543)
+      SUPABASE_MIGRATIONS_DB_URL: ${{ secrets.SUPABASE_MIGRATIONS_DB_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Secret present
+        run: |
+          [ -n "$SUPABASE_MIGRATIONS_DB_URL" ] || { echo "::error::secret SUPABASE_MIGRATIONS_DB_URL is not set (docs/guides/ci-cd.md)"; exit 1; }
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Pending migrations
+        run: supabase db push --db-url "$SUPABASE_MIGRATIONS_DB_URL" --include-all --dry-run --yes
+      - name: Apply
+        run: supabase db push --db-url "$SUPABASE_MIGRATIONS_DB_URL" --include-all --yes
+
+  deploy:
+    name: Vercel production
+    needs: migrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Vercel secrets present
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            [ -n "${!name}" ] || { echo "::error::secret $name is not set (docs/guides/ci-cd.md)"; exit 1; }
+          done
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install --global vercel@${{ env.VERCEL_CLI_VERSION }}
+      - name: Deploy production
+        id: deploy
+        # --skip-domain: the production domain moves to the new deployment only after the smoke test passes
+        run: |
+          url=$(vercel deploy --prod --skip-domain --yes --archive=tgz --logs --token "$VERCEL_TOKEN" \
+                  --meta githubCommitSha=${{ github.sha }} | tail -n 1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployment: $url" >> "$GITHUB_STEP_SUMMARY"
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Smoke test the new deployment
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: uv run --no-project python scripts/smoke_test.py "${{ steps.deploy.outputs.url }}" --frontend
+      - name: Promote to the production domain
+        run: vercel promote "${{ steps.deploy.outputs.url }}" --yes --token "$VERCEL_TOKEN"
+      - name: Smoke test the production domain
+        if: vars.PRODUCTION_URL != ''
+        run: uv run --no-project python scripts/smoke_test.py "${{ vars.PRODUCTION_URL }}" --frontend
