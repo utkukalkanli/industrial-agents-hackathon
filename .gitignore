@@ -6,8 +6,6 @@ __pycache__/
 *.pyc
 agent_output/
 .claude/settings.local.json
-.claude/worklog/.verified
-.claude/worklog/VERIFICATION.md
 data/user/
 .superpowers/
 

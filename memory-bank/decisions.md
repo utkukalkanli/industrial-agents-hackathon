@@ -6,7 +6,7 @@ related: [open-questions.md, project-state.md, ../docs/architecture/overview.md]
 
 # Decisions
 
-[Memory bank](README.md) · Next free id: **D-025**
+[Memory bank](README.md) · Next free id: **D-026**
 
 Template:
 
@@ -104,7 +104,7 @@ Template:
 
 <a id="d-008"></a>
 ### D-008 — Every commit is verified by an independent agent
-- **Status:** accepted · **Date:** 2026-10-24 · **By:** Atahan
+- **Status:** superseded by [D-025](#d-025) (2026-10-25) · **Date:** 2026-10-24 · **By:** Atahan
 - **Context:** Many agents write code in parallel; we need to know that what is claimed is what is implemented.
 - **Decision:** Worklog of claims (`.claude/worklog/PENDING.md`) → `/ship` → fresh `commit-verifier` agent →
   `commit-fixer` loop (≤ 3 rounds) on FAIL → commit only with a PASS stamp of the staged tree; enforced by a
@@ -393,3 +393,16 @@ Template:
   (the repo is detached from Atahan's, so his deployment is unaffected).
 - **Evidence:** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `scripts/smoke_test.py`,
   [ci-cd.md](../docs/guides/ci-cd.md).
+
+<a id="d-025"></a>
+### D-025 — CI on pull requests replaces the local /ship verification
+- **Status:** accepted · **Date:** 2026-10-25 · **By:** Utku
+- **Context:** D-008 made every commit go through a claims worklog, a fresh `commit-verifier` agent, a fixer loop and
+  a hook that blocked `git commit`. With GitHub Actions CI ([D-024](#d-024)) the same mechanical checks (pytest,
+  link check, build) run on every PR in a clean environment. A two-line CI fix took two verifier rounds.
+- **Decision:** remove `/ship`, the verifier / fixer agents, the commit hook and its stamp script, the worklog
+  template and `tests/test_commit_hook.py`. Commit normally on a branch, open a PR into `main`; CI checks are the
+  gate. PR descriptions carry the claims + how they were verified. `.claude/worklog/history/` stays as the record.
+- **Consequences:** no per-commit agent review; review happens on the PR (human, or a Claude review on the PR).
+  Branch protection on `main` should require the CI checks ([ci-cd.md](../docs/guides/ci-cd.md#3-github-repo-settings)).
+- **Evidence:** [dev-workflow.md](../docs/guides/dev-workflow.md), CLAUDE.md "Commit workflow".

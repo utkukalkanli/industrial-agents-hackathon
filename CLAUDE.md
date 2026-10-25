@@ -21,7 +21,8 @@ Full brief: [docs/challenge/brief.md](docs/challenge/brief.md).
 ├── docs/                           ← curated knowledge base — start at docs/README.md
 ├── memory-bank/                    ← live project state, decisions, open questions
 ├── scripts/                        ← repo tooling (check_links.py)
-├── .claude/                        ← agents, /ship skill, commit hook, worklog (dev-workflow.md)
+├── .github/                        ← CI/CD: ci.yml (PR checks + preview), deploy.yml (main → prod) (ci-cd.md)
+├── .claude/worklog/history/        ← audit trail of the retired /ship commits (D-008, superseded)
 ├── archive/initial-repo/           ← rest of the organiser kit, read-only reference (D-004)
 └── LICENSE, NOTICE.md, ATTRIBUTION.md, data/README.md  ← licensing: MIT for our code only (D-009)
 ```
@@ -71,16 +72,15 @@ We build at the repo root; `archive/` is reference only
 | ElevenLabs, cloud stack, question parsing research | [docs/research/](docs/README.md#research-dated-2026-10-24) |
 | Per-kind solver plan (benchmark) | [docs/architecture/solver-plan.md](docs/architecture/solver-plan.md) |
 | Commands (run, evaluate, submit) | [docs/guides/commands.md](docs/guides/commands.md) |
-| How to commit (verified workflow) | [docs/guides/dev-workflow.md](docs/guides/dev-workflow.md) |
+| How to commit (branch → PR → CI) | [docs/guides/dev-workflow.md](docs/guides/dev-workflow.md) |
 | Terms (anchor, opening, connector, …) | [docs/guides/glossary.md](docs/guides/glossary.md) |
 
-## Commit workflow (mandatory)
+## Commit workflow
 
-Never run `git commit` directly — a hook blocks it. While working, keep `.claude/worklog/PENDING.md` (from
-`.claude/worklog/TEMPLATE.md`) listing every claim and the checks you ran; then use the **`/ship`** skill: an
-independent `commit-verifier` agent checks the claims against the staged diff, `commit-fixer` repairs failures,
-and only a PASS is committed. Details: [docs/guides/dev-workflow.md](docs/guides/dev-workflow.md),
-[D-008](memory-bank/decisions.md#d-008).
+Work on a branch, commit with plain `git commit`, open a pull request into `main`. GitHub Actions CI (Python tests,
+Postgres integration, frontend build, Vercel preview) is the gate; merging to `main` deploys. Run the checks for
+what you touched before pushing. Details: [docs/guides/dev-workflow.md](docs/guides/dev-workflow.md),
+[docs/guides/ci-cd.md](docs/guides/ci-cd.md), [D-025](memory-bank/decisions.md#d-025).
 
 ## Working conventions
 

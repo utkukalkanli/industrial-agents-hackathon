@@ -10,6 +10,17 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 Template: `## YYYY-MM-DD HH:MM — title` then *Did / Learned / Changed docs / Opened-closed Q / Next*.
 
+## 2026-10-25 — /ship retired: CI on pull requests is the gate (branch `remove-ship`)
+
+- **Did:** removed `.claude/skills/ship`, `agents/commit-verifier.md` + `commit-fixer.md`, `hooks/` (commit gate +
+  stamp), `settings.json` (it only registered that hook), `worklog/TEMPLATE.md`, `tests/test_commit_hook.py` and
+  the two worklog lines in `.gitignore`; CLAUDE.md, [dev-workflow.md](../docs/guides/dev-workflow.md), docs index
+  and project-state point to branch → PR → CI. [D-025](decisions.md#d-025) supersedes D-008. Kept
+  `.claude/worklog/history/` (audit trail).
+- **Learned:** the hook runs from the main checkout's `.claude/settings.json`, so it keeps blocking Claude's
+  commits in any worktree until a checkout without it is active — this change itself was the last `/ship` commit.
+- **Next:** merge after PR #2; set branch protection on `main`.
+
 ## 2026-10-25 — CI/CD: first GitHub run of PR #2
 
 - **Did:** pushed `ci-cd`, opened PR #2 (repo now detached from Atahan's fork network). First run 40218266044:
