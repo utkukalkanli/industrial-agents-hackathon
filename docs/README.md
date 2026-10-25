@@ -72,7 +72,7 @@ Back to [CLAUDE.md](../CLAUDE.md) · Live state lives in [memory-bank/](../memor
 - [guides/commands.md](guides/commands.md) — setup, chat, evaluate, score, produce submission.
 - [guides/ci-cd.md](guides/ci-cd.md) — GitHub Actions CI (tests, Postgres integration, frontend build) and deploys to our own Supabase + Vercel; one-time setup, secrets, rollback.
 - [guides/demo-runbook.md](guides/demo-runbook.md) — demo video (2 min) and final pitch: building, exact lines, expected answers, checklist.
-- [guides/dev-workflow.md](guides/dev-workflow.md) — verified commits: worklog claims → verifier agent → fixer loop → hook-enforced stamp.
+- [guides/dev-workflow.md](guides/dev-workflow.md) — branch → commit → pull request; CI is the gate (the old `/ship` verification is retired, D-025).
 - [guides/glossary.md](guides/glossary.md) — shared vocabulary.
 
 ## Suggested reading order for a new agent

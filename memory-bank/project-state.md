@@ -68,8 +68,8 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   live mic; button restyle and light-mode map tones not checked visually.
 - Licensing: `LICENSE` (MIT, our code only), `NOTICE.md` (third-party paths + terms), `data/README.md`
   (per-source data licences) — [D-009](decisions.md#d-009) accepted.
-- Verified-commit workflow in `.claude/` (verifier + fixer agents, `/ship` skill, commit-gate hook, worklog) —
-  [D-008](decisions.md#d-008), [dev-workflow.md](../docs/guides/dev-workflow.md).
+- Commit workflow: branch → plain commit → PR into `main`, CI is the gate ([D-025](decisions.md#d-025), supersedes the
+  `/ship` verifier of D-008; old reports in `.claude/worklog/history/`), [dev-workflow.md](../docs/guides/dev-workflow.md).
 - Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git (Utku's repo, detached from
   Atahan's fork network 2026-10-25); local remote `upstream` = https://github.com/atahankilc/industrial-agents-hackathon.git (read only).
 - CI/CD (2026-10-25, [D-024](decisions.md#d-024), branch `ci-cd`, PR #2 open): GitHub Actions `ci.yml` (pytest +
@@ -340,8 +340,8 @@ has no swing info. Next: Guide events on the plan
 4. ElevenLabs Custom LLM on the deployed `/v1/chat/completions` — ask before creating anything in any account.
 5. Open for Atahan: model per channel (Q-012), team name for the test CSV, push `dev`.
 
-**Ways of working:** session protocol in CLAUDE.md; keep `.claude/worklog/PENDING.md` current; commit only via
-`/ship`, staging/stamp/commit as separate commands; subagents get disjoint files.
+**Ways of working:** session protocol in CLAUDE.md; branch + PR into `main`, CI is the gate (D-025); subagents get
+disjoint files.
 
 ## Next priorities
 

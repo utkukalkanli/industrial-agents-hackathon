@@ -1,57 +1,40 @@
 ---
 id: guide-dev-workflow
-summary: Agentic development workflow — every commit goes through a worklog of claims, an independent verifier agent, an optional fixer loop, and a hook-enforced PASS stamp.
-sources: [.claude/skills/ship/SKILL.md, .claude/agents/commit-verifier.md, .claude/agents/commit-fixer.md, .claude/hooks/require-verification.py, .claude/hooks/stamp-verified.py, .claude/settings.json]
-related: [commands.md, ../../memory-bank/decisions.md, ../../CLAUDE.md]
+summary: Development workflow — branch, commit normally, open a pull request into main; GitHub Actions CI is the gate. The earlier local /ship verification (D-008) is retired.
+sources: [.github/workflows/ci.yml, .github/workflows/deploy.yml, docs/guides/ci-cd.md]
+related: [ci-cd.md, commands.md, ../../memory-bank/decisions.md, ../../CLAUDE.md]
 ---
 
-# Development workflow: verified commits
+# Development workflow
 
-[Docs index](../README.md) · Decision: [D-008](../../memory-bank/decisions.md#d-008)
-
-**Promise → evidence → commit.** Whoever implements writes down what they claim; a fresh agent that did not
-write the code checks every claim against the staged diff; only a PASS can be committed.
+[Docs index](../README.md) · Decision: [D-025](../../memory-bank/decisions.md#d-025) (supersedes D-008) · CI/CD:
+[ci-cd.md](ci-cd.md)
 
 ```
- implement ──► .claude/worklog/PENDING.md (claims, checks run, gaps)
-                     │  /ship
-                     ▼
-               git add <paths>
-                     ▼
-        ┌──► commit-verifier (fresh agent, read-only) ──PASS──► archive log → stamp tree hash → git commit
-        │            │ FAIL (required fixes)
-        │            ▼
-        └──── commit-fixer (implements fix OR corrects the claim; restages; never commits)   max 3 rounds
+ branch off main ──► commit (plain git commit) ──► push ──► pull request into main
+                                                              │  CI: Python tests, Integration (Postgres + API),
+                                                              │      Frontend lint + build, Vercel preview
+                                                              ▼
+                                                 green + reviewed ──► merge ──► deploy.yml → production
 ```
 
-## Pieces (all in `.claude/`)
+- Work on a branch, never directly on `main`. Commit with plain `git commit`; small, focused commits.
+- Before pushing, run what CI runs for the parts you touched ([ci-cd.md](ci-cd.md#run-the-same-checks-locally)):
+  `uv run pytest -q -n auto`, `python3 scripts/check_links.py`, and `npm run lint && npm run build` in
+  `frontend/app/`.
+- Open a pull request into `main`. The required checks must pass; the preview URL lands as a PR comment.
+- Write the PR description as claims a reviewer can check (what changed, how it was verified, known gaps) — the
+  habit the old worklog taught, now in the PR.
+- Session protocol (CLAUDE.md) still applies: update `memory-bank/` and docs in the same PR.
+- Parallel sessions: separate git worktrees per branch (`git worktree add ../<dir> -b <branch> origin/main`).
 
-| File | Role |
-|---|---|
-| `worklog/TEMPLATE.md` | format of a worklog entry: summary, **claims table** (claim · where · how to verify), checks run, KB updates, known gaps |
-| `worklog/PENDING.md` | the current, not-yet-committed entry (one at a time) |
-| `worklog/history/` | archived entries + their verifier report, one per commit — the audit trail |
-| `agents/commit-verifier.md` | read-only subagent: verifies each claim, runs tests + link check, scans for secrets, hard-coded test answers, edits to `benchmark/score.py`, undeclared changes, stale knowledge base → `VERDICT: PASS/FAIL` |
-| `agents/commit-fixer.md` | fixes only the listed issues or honestly downgrades the claim to a known gap; restages; never commits |
-| `skills/ship/SKILL.md` | the orchestration (`/ship`, `/ship push`) |
-| `hooks/require-verification.py` | PreToolUse hook on Bash: blocks `git commit` unless `worklog/.verified` = hash of the staged tree (`git write-tree`); also blocks `--amend`, `-a`, and `git add … && git commit` one-liners. Checks the repository the commit runs in (tool-call `cwd`, then `cd <dir>` / `git -C <dir>` in the command), so a commit in a git worktree is checked against that worktree's index and stamp although settings.json runs the main checkout's copy of the hook. Commit-like text anywhere in a Bash command (even inside a heredoc) is treated as a commit |
-| `hooks/stamp-verified.py` | writes the stamp; refuses unless the archived entry is staged and says `VERDICT: PASS` |
-| `settings.json` | registers the hook (project-wide, committed) |
+## History
 
-## How to use
-
-- Agents: keep `PENDING.md` current while working (copy the template at the start of a work chunk), then run
-  `/ship`. Never call `git commit` directly — the hook will refuse.
-- Humans: say "ship it" / `/ship` in Claude Code. Commits from your own terminal are not hooked (escape hatch),
-  but skip the verification — avoid it.
-- Any change after the stamp (even one more `git add`) invalidates it → re-verify.
-
-## Limits (honest)
-
-- A guard against sloppy or over-claiming agents, not a security boundary: an agent could forge a stamp by
-  hand. The verifier report is archived in `worklog/history/` with each commit, so this is visible in review.
-- One `PENDING.md` at a time; parallel sessions should ship in turn or use separate worktrees.
-- Verification costs tokens (a verifier run per round); budget [Q-012](../../memory-bank/open-questions.md#q-012).
+Until 2026-10-25 every commit went through `/ship`: a worklog of claims, an independent `commit-verifier` agent,
+a `commit-fixer` loop and a PreToolUse hook that blocked `git commit` without a PASS stamp
+([D-008](../../memory-bank/decisions.md#d-008)). Retired because CI now runs the same checks on every PR in a
+clean environment, and the per-commit verifier cost minutes and tokens per round. The archived entries and
+reports stay in `.claude/worklog/history/` as the audit trail of those commits.
 
 ## Related
-- [commands.md](commands.md) · [CLAUDE.md](../../CLAUDE.md#working-conventions)
+- [ci-cd.md](ci-cd.md) · [commands.md](commands.md) · [CLAUDE.md](../../CLAUDE.md#working-conventions)
