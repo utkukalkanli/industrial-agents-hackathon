@@ -382,11 +382,12 @@ Template:
 - **Status:** proposed · **Date:** 2026-10-25 · **By:** Utku (asked for production-quality CI/CD on own accounts; defaults by Claude)
 - **Context:** The repo moved to Utku's fork (`origin` = utkukalkanli/industrial-agents-hackathon, `upstream` =
   Atahan's). The app was deployed by Atahan on his Vercel + Supabase with Vercel Git deploys and no CI.
-- **Decision:** GitHub Actions runs CI on every PR / push (pytest incl. dataset regression with xdist, Postgres
+- **Decision:** GitHub Actions runs CI on every PR and every push to `dev` (`main` through `deploy.yml`) (pytest incl. dataset regression with xdist, Postgres
   integration via `supabase db push` on a service container + live store tests + API smoke test, frontend lint +
   build) and deploys: same-repo PRs → Vercel preview + smoke test; `main` → migrations on our Supabase → Vercel
   production with `--skip-domain` → smoke test → `vercel promote`. Vercel Git deploys off (`vercel.json`), actions
-  pinned to SHAs, Dependabot weekly. CI never calls a model (`GUIDE_LLM=offline`).
+  pinned to SHAs, Dependabot weekly. CI never calls a model (`GUIDE_LLM=offline`). The integration job's Postgres URL
+  has `sslmode=disable` (the service container speaks no TLS; the Supabase CLI tries it otherwise).
 - **Consequences:** deploys need the GitHub secrets in [ci-cd.md](../docs/guides/ci-cd.md#3-github-repo-settings);
   migrations must stay additive; `git.deploymentEnabled: false` turns off Vercel Git deploys for this `vercel.json`
   (the repo is detached from Atahan's, so his deployment is unaffected).

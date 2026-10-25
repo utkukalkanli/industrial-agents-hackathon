@@ -1,5 +1,5 @@
-# Continuous integration (docs/guides/ci-cd.md): every pull request and every push except to main (deploy.yml calls
-# this workflow first for main). Three gates in parallel: Python unit + dataset regression tests, Postgres integration
+# Continuous integration (docs/guides/ci-cd.md): every pull request and every push to dev (deploy.yml calls this
+# workflow first for main; other branches are checked through their pull request, so nothing runs twice). Three gates in parallel: Python unit + dataset regression tests, Postgres integration
 # (Supabase migrations + live store tests + API smoke test), frontend lint + typecheck + build. A pull request from
 # this repository then gets a Vercel preview deployment, smoke-tested, with its URL in a PR comment.
 name: CI
@@ -7,7 +7,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [main]
+    branches: [dev]
   workflow_call:
   workflow_dispatch:
 
@@ -63,7 +63,8 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      # the service container speaks no TLS; the Supabase CLI tries it unless told not to
+      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2

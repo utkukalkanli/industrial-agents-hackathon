@@ -20,7 +20,7 @@ off (`"git": {"deploymentEnabled": false}` in `vercel.json`), so a deploy only h
 | Event | Workflow | Jobs |
 |---|---|---|
 | Pull request | `ci.yml` | `python`, `integration`, `frontend` in parallel → `preview` (same-repo PRs) |
-| Push to any branch but `main` | `ci.yml` | `python`, `integration`, `frontend` |
+| Push to `dev` | `ci.yml` | `python`, `integration`, `frontend` (other branches: through their PR) |
 | Push to `main` (= a merged PR) | `deploy.yml` | `ci` (all of `ci.yml`) → `migrate` → `deploy` |
 | Weekly | Dependabot | PRs for Actions, `uv` and `npm` updates (each runs CI + preview) |
 
@@ -111,7 +111,7 @@ uv run python scripts/check_links.py
 cd frontend/app && npm ci && npm run lint && npm run build   # frontend job
 # integration job (needs Docker):
 docker run -d --rm --name pg -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:17
-npx supabase@2.122.0 db push --db-url postgresql://postgres:postgres@localhost:55432/postgres --include-all --yes
+npx supabase@2.122.0 db push --db-url 'postgresql://postgres:postgres@localhost:55432/postgres?sslmode=disable' --include-all --yes
 PERSIST_LIVE_TEST=1 SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:55432/postgres uv run pytest -q -k live_postgres
 GUIDE_LLM=offline SUPABASE_DB_URL=… uv run uvicorn backend.app:app --port 8000 &
 uv run python scripts/smoke_test.py http://127.0.0.1:8000 --chat
