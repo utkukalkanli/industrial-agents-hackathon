@@ -127,8 +127,9 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   Frontend done (`frontend/app/src/access/`, `plan/ObjectsLayer.tsx`): sign-in, darkened spaces, Preferences,
   Building settings (My preferences / Access / Members / Objects), live object markers — checked headless with a
   fake sign-in. Migration `20261025200000_access.sql` applied 2026-10-25 (Postgres stores round-trip verified live).
-  2026-10-26: admin account ✅ (one Auth user = `ADMIN_EMAIL` in the new Supabase project); `ACCESS_MODE=on` +
-  `ADMIN_EMAIL` set in Vercel production/preview, prod `/api/config` → `access_mode: true`.
+  2026-10-26: admin account ✅ (one Auth user = `ADMIN_EMAIL` in the new Supabase project); `ADMIN_EMAIL` set in Vercel
+  production/preview; `ACCESS_MODE` was on there briefly and removed again (23:43): production runs with access mode
+  off so the demo shows create / edit to everyone.
   **Not yet:** a real Supabase sign-in on the app (untested), invite redirect URLs in Supabase, `/events`
   polling (voice turns' preferences are not captured).
 
@@ -346,8 +347,8 @@ has no swing info. Next: Guide events on the plan
    `love-sport/industrial-agents-hackathon` has its env vars set (production/preview/development). Production is
    deployed from the CLI (local working tree) only: git-triggered deployments are disabled; the git link's
    production branch is `7-buildings-from-plans`. Production runs `7-buildings-from-plans`
-   (`dpl_7ZQGq3PxoWFXQdcZ7NLRvKVvuV7g`, promoted from a smoke-tested preview: health / config / buildings 200, one
-   Guide chat). Real sign-in and the browser UI not yet tested on it.
+   (`dpl_F8wfKMwVTZZ1WjjbEZ5ESLFkduRH`, promoted from a smoke-tested preview), functions in `dub1` next to the
+   database (`vercel.json` `regions`), access mode off. Voice in the browser not yet re-tested on it.
    *Superseded history:* deployed by Atahan 2026-10-24: Supabase ✅ (old project created, `conversations` table applied, sessions persisted via
    `backend/persistence.py`, live round trip incl. real Claude verified 2026-10-24). Vercel config ✅ (`vercel.json`
    with services `web` + `api`, `/api` rewrite, `excludeFiles`, `maxDuration` 300; `StripPrefix` and `CORS_ORIGINS`

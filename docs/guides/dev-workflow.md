@@ -1,7 +1,7 @@
 ---
 id: guide-dev-workflow
 summary: Agentic development workflow — every commit goes through a worklog of claims, an independent verifier agent, an optional fixer loop, and a hook-enforced PASS stamp.
-sources: [.claude/skills/ship/SKILL.md, .claude/agents/commit-verifier.md, .claude/agents/commit-fixer.md, .claude/hooks/require-verification.py, .claude/hooks/stamp-verified.py, .claude/settings.json]
+sources: [.claude/skills/ship/SKILL.md, .claude/agents/commit-verifier.md, .claude/agents/commit-fixer.md, .claude/hooks/require-verification.py, .claude/hooks/stamp-verified.py, .claude/hooks/remind-log.py, .claude/settings.json]
 related: [commands.md, ../../memory-bank/decisions.md, ../../CLAUDE.md]
 ---
 
@@ -36,7 +36,8 @@ write the code checks every claim against the staged diff; only a PASS can be co
 | `skills/ship/SKILL.md` | the orchestration (`/ship`, `/ship push`) |
 | `hooks/require-verification.py` | PreToolUse hook on Bash: blocks `git commit` unless `worklog/.verified` = hash of the staged tree (`git write-tree`); also blocks `--amend`, `-a`, and `git add … && git commit` one-liners. Checks the repository the commit runs in (tool-call `cwd`, then `cd <dir>` / `git -C <dir>` in the command), so a commit in a git worktree is checked against that worktree's index and stamp although settings.json runs the main checkout's copy of the hook. Commit-like text anywhere in a Bash command (even inside a heredoc) is treated as a commit |
 | `hooks/stamp-verified.py` | writes the stamp; refuses unless the archived entry is staged and says `VERDICT: PASS` |
-| `settings.json` | registers the hook (project-wide, committed) |
+| `hooks/remind-log.py` | Stop hook (runs with system `python3`): at the first stop of a session, blocks once if tracked files differ from HEAD (`memory-bank/log.md` and `worklog/` excluded) and `memory-bank/log.md` is unchanged; the reason asks Claude to add a log.md entry or say why none is needed. Never blocks when `stop_hook_active` is set; per-session marker `.git/claude-log-reminded/<session_id>`; any error lets the stop through |
+| `settings.json` | registers both hooks: PreToolUse `require-verification.py`, Stop `remind-log.py` (project-wide, committed) |
 
 ## How to use
 
@@ -52,6 +53,8 @@ write the code checks every claim against the staged diff; only a PASS can be co
   hand. The verifier report is archived in `worklog/history/` with each commit, so this is visible in review.
 - One `PENDING.md` at a time; parallel sessions should ship in turn or use separate worktrees.
 - Verification costs tokens (a verifier run per round); budget [Q-012](../../memory-bank/open-questions.md#q-012).
+- The Stop hook fires at the end of every turn but reminds at most once per session; a session started before the
+  hook existed may need `/hooks` or a restart to load it.
 
 ## Related
 - [commands.md](commands.md) · [CLAUDE.md](../../CLAUDE.md#working-conventions)

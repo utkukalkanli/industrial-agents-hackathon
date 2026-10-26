@@ -36,6 +36,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES
 from pydantic import BaseModel
 
 from agent.guide import PHOTO_TYPES, llm_mode, system_blocks
@@ -80,7 +81,10 @@ class StripPrefix:
 origins = [origin.strip() for origin in os.environ.get("CORS_ORIGINS", "*").split(",") if origin.strip()]
 app = FastAPI(title="Talk to Your Building")
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
-app.add_middleware(GZipMiddleware, minimum_size=1000)  # the floor plan export is up to ~0.5 MB of JSON
+# the floor plan export is up to ~0.5 MB of JSON; NDJSON streams stay uncompressed: gzip holds a Guide turn's lines
+# back until the turn ends (browsers ask for gzip), so steps and spoken sentences arrived all at once on the deployment
+app.add_middleware(GZipMiddleware, minimum_size=1000,
+                   exclude_content_types=(*DEFAULT_EXCLUDED_CONTENT_TYPES, "application/x-ndjson"))
 app.add_middleware(StripPrefix)  # added last = outermost: routes see the path without /api
 store = SessionStore()
 drafts = DraftStore(backend_from_env(Path(os.environ.get("GUIDE_USER_DIR", DATA_DIR / "user"))), store.catalogue)

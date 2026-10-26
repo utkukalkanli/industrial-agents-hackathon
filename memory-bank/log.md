@@ -8,6 +8,29 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-26 23:43 — Stop hook for log.md; production in dub1, NDJSON not gzipped, access mode off
+
+- **Did:** added a Stop hook (`.claude/hooks/remind-log.py`, registered in `.claude/settings.json`): when tracked
+  files differ from HEAD (log.md and `.claude/worklog/` excluded) and `memory-bank/log.md` is unchanged, the first
+  stop of a session is blocked with a reminder to add a log entry; `stop_hook_active` + a per-session marker in
+  `.git/claude-log-reminded/` stop it looping. Pipe-tested on a scratch repo (6 cases). Also applied the
+  `builder_imports` migration that branch 7 needs (see the 22:10 entry).
+  Production felt slow: functions ran in `iad1` (Washington) while Supabase is in eu-west-1, so every DB call
+  crossed the Atlantic; `vercel.json` now pins `"regions": ["dub1"]` (create-session 1.0 s → 0.37 s, measured).
+  `backend/app.py`: GZip no longer compresses `application/x-ndjson` (it could hold a Guide turn's lines back);
+  test `test_chat_stream_is_not_gzipped` (failed first, then 24/24 in test_backend.py). Vercel's edge still
+  gzips the stream, but lines were measured arriving incrementally. `ACCESS_MODE` removed from Vercel
+  production/preview; production = `dpl_F8wfKMwVTZZ1WjjbEZ5ESLFkduRH` (`/api/config` → `access_mode: false`,
+  `x-vercel-id` fra1::dub1).
+- **Learned:** production (`7-buildings-from-plans`) serves branch-7 code (bundle has the plan-import strings) and
+  the same 281 buildings as localhost; it *looks* different because `ACCESS_MODE=on` in production hides
+  "New building from floor plans" and edit controls from anyone not signed in as admin
+  (`frontend/app/src/map/MapLanding.tsx` `!access.mode || access.admin`, incl. right-click create). The first
+  Guide sentence takes ~4.5 s everywhere (model time, not the deployment).
+- **Changed docs:** [project-state.md](project-state.md) (access mode, Deploy item),
+  [dev-workflow.md](../docs/guides/dev-workflow.md) (remind-log Stop hook row, settings.json row, Limits).
+- **Next:** user tries voice on production in the browser (only server-side timing was measured).
+
 ## 2026-10-26 22:10 — Own Supabase project, access mode on in production, LICENSE holder
 
 - **Did:** Vercel project `love-sport/industrial-agents-hackathon` got its env vars (none were set): ANTHROPIC,

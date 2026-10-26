@@ -168,6 +168,14 @@ def test_plan_is_gzipped(client):
     assert response.headers.get("content-encoding") == "gzip"
 
 
+def test_chat_stream_is_not_gzipped(client):
+    session_id = new_session(client)
+    response = client.post("/chat/stream", json={"session_id": session_id, "message": ROUTE},
+                           headers={"Accept-Encoding": "gzip"})
+    assert response.headers["content-type"].startswith("application/x-ndjson")
+    assert "content-encoding" not in response.headers
+
+
 def test_route_event_has_legs(client):
     session_id = new_session(client)
     turn = say(client, session_id, ROUTE)
