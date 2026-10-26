@@ -69,8 +69,9 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   (per-source data licences) — [D-009](decisions.md#d-009) accepted.
 - Verified-commit workflow in `.claude/` (verifier + fixer agents, `/ship` skill, commit-gate hook, worklog) —
   [D-008](decisions.md#d-008), [dev-workflow.md](../docs/guides/dev-workflow.md).
-- Git: `main`; `origin` = https://github.com/atahankilc/industrial-agents-hackathon.git (public); first commit
-  `3300e6c` pushed to `origin/main`.
+- Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git, `upstream` =
+  https://github.com/atahankilc/industrial-agents-hackathon.git (public; first commit `3300e6c` was pushed there).
+  Working branch (2026-10-26): `7-buildings-from-plans` (tracks `upstream/7-buildings-from-plans`).
 
 ## What works (verified 2026-10-24)
 
@@ -126,7 +127,9 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   Frontend done (`frontend/app/src/access/`, `plan/ObjectsLayer.tsx`): sign-in, darkened spaces, Preferences,
   Building settings (My preferences / Access / Members / Objects), live object markers — checked headless with a
   fake sign-in. Migration `20261025200000_access.sql` applied 2026-10-25 (Postgres stores round-trip verified live).
-  **Not yet:** admin account (`ADMIN_EMAIL`), a real Supabase sign-in, invite redirect URLs in Supabase, `/events`
+  2026-10-26: admin account ✅ (one Auth user = `ADMIN_EMAIL` in the new Supabase project); `ACCESS_MODE=on` +
+  `ADMIN_EMAIL` set in Vercel production/preview, prod `/api/config` → `access_mode: true`.
+  **Not yet:** a real Supabase sign-in on the app (untested), invite redirect URLs in Supabase, `/events`
   polling (voice turns' preferences are not captured).
 
 - **Builder Edit mode (branch `2-builder-edit`, in progress):** design
@@ -338,7 +341,14 @@ has no swing info. Next: Guide events on the plan
    the real Guide (key set) and record a demo GIF/video.
 2. Voice: ElevenLabs Custom LLM on the deployed `/v1/chat/completions` (replies are voice-ready); ask before
    creating anything in any account. Decide model per channel (Q-012).
-3. Deploy ✅ (deployed by Atahan 2026-10-24): Supabase ✅ (project created, `conversations` table applied, sessions persisted via
+3. Deploy ✅. **Current (2026-10-26, [log](log.md)):** Supabase = Utku's own project `nsncgtwjallfkqtxhmpd`
+   (eu-west-1), all four `supabase/migrations/*.sql` applied, local `.env` and Vercel point at it. Vercel project
+   `love-sport/industrial-agents-hackathon` has its env vars set (production/preview/development). Production is
+   deployed from the CLI (local working tree) only: git-triggered deployments are disabled; the git link's
+   production branch is `7-buildings-from-plans`. Production runs `7-buildings-from-plans`
+   (`dpl_7ZQGq3PxoWFXQdcZ7NLRvKVvuV7g`, promoted from a smoke-tested preview: health / config / buildings 200, one
+   Guide chat). Real sign-in and the browser UI not yet tested on it.
+   *Superseded history:* deployed by Atahan 2026-10-24: Supabase ✅ (old project created, `conversations` table applied, sessions persisted via
    `backend/persistence.py`, live round trip incl. real Claude verified 2026-10-24). Vercel config ✅ (`vercel.json`
    with services `web` + `api`, `/api` rewrite, `excludeFiles`, `maxDuration` 300; `StripPrefix` and `CORS_ORIGINS`
    in `backend/app.py`; `tests/test_deploy.py`). Remaining: smoke-test the live URL; the first-deploy UNVERIFIED

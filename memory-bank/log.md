@@ -8,6 +8,25 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-26 22:10 — Own Supabase project, access mode on in production, LICENSE holder
+
+- **Did:** Vercel project `love-sport/industrial-agents-hackathon` got its env vars (none were set): ANTHROPIC,
+  ELEVENLABS, PARSER_MODE, SUPABASE_* in production/preview/development; ACCESS_MODE=on + ADMIN_EMAIL in
+  production/preview. Supabase moved to Utku's own project `nsncgtwjallfkqtxhmpd` (eu-west-1): all four
+  `supabase/migrations/*.sql` applied (conversations, builder_drafts, builder_imports, access), local `.env` / `.env.deploy` and Vercel point at it; one Auth user (admin)
+  created. LICENSE copyright holder → Utku Kalkanlı. `.gitignore`: `.vercel`, `.env*` (from `vercel link`) +
+  `!.env.example`. Working checkout moved to `7-buildings-from-plans`.
+  A preview of `7-buildings-from-plans` was deployed and smoke-tested (health / config / buildings 200, one Guide
+  chat answered), then promoted to production (`dpl_7ZQGq3PxoWFXQdcZ7NLRvKVvuV7g`; health / config re-checked).
+- **Learned:** production is deployed from the CLI (local working tree), not from git: git-triggered deployments are
+  disabled on the Vercel project (`gitProviderOptions.createDeployments: disabled`); the git link's production
+  branch was changed to `7-buildings-from-plans` (2026-10-26 ~22:05, via API; repo
+  `utkukalkanli/industrial-agents-hackathon`). `builder_imports` exists only on branches with plan import
+  (it was missing at first and added after the promotion). The old Supabase project is no longer referenced by our env.
+- **Changed docs:** [project-state.md](project-state.md) (Git line, access mode, Deploy item).
+- **Next:** test a real sign-in with
+  the admin account; add invite redirect URLs in Supabase.
+
 Template: `## YYYY-MM-DD HH:MM — title` then *Did / Learned / Changed docs / Opened-closed Q / Next*.
 
 ## 2026-10-25 15:00 — Buildings from plans: reference + trace in Edit mode, real map position (branch `7-buildings-from-plans` (started as `6-plan-reference-location`))
