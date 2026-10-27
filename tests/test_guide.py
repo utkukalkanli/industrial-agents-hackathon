@@ -319,3 +319,19 @@ def test_guide_speed_standard_turns_fast_mode_off(monkeypatch):
     client = FastProbeClient()
     Guide(BuildingSession.load(BUILDING), client=client).reply("Hello")
     assert "speed" not in client.calls[0]
+
+
+def test_a_reply_cut_off_mid_tool_call_leaves_no_dangling_call(session):
+    """A tool call cut off by the token limit is neither run nor kept: the next request must stay valid (every
+    tool_use answered by a tool_result, no empty assistant message)."""
+    def cut(request: dict) -> object:
+        return message(tool_use("locate", {"query": "prin"}), stop_reason="max_tokens")
+
+    guide, client = run(session, [cut, say("Hello again.")])
+    assert "cut off" in guide.reply("Where is the printer?").text
+    guide.reply("Hi")
+    history = client.requests[1]["messages"]
+    assistant = [message for message in history if message["role"] == "assistant"]
+    blocks = [block for message in assistant for block in message["content"]]
+    assert assistant and all(message["content"] for message in assistant)
+    assert not [block for block in blocks if getattr(block, "type", None) == "tool_use"]

@@ -39,6 +39,16 @@ def make(max_retries: int | None = None, name: str | None = None) -> object:
     return anthropic.Anthropic(max_retries=max_retries) if max_retries is not None else anthropic.Anthropic()
 
 
+def kept_content(response: object) -> list:
+    """The reply's content blocks for the history. A reply cut off by the token limit loses its tool_use blocks:
+    their input may be truncated, and no tool_result follows them, which the next request would be refused for
+    (both providers). An assistant message may not be empty, so a placeholder stands in when nothing is left."""
+    if response.stop_reason != "max_tokens":
+        return list(response.content)
+    kept = [block for block in response.content if block.type != "tool_use"]
+    return kept or [{"type": "text", "text": "(cut off by the token limit)"}]
+
+
 def live(client: object) -> bool:
     from agent.openai_llm import OpenAIClient
 

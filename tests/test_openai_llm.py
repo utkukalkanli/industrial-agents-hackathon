@@ -210,9 +210,30 @@ def test_cached_decisions_are_kept_apart_per_provider(monkeypatch):
 def test_the_builder_uses_the_provider_guide_llm_names(monkeypatch):
     from agent.builder import make_builder_client
 
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    for name in ("LLM_PROVIDER", "GUIDE_LLM"):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     assert isinstance(make_builder_client(), OpenAIClient)
     monkeypatch.setenv("GUIDE_LLM", "anthropic")
     assert isinstance(make_builder_client(), anthropic.Anthropic)
+
+
+def test_kept_content_drops_tool_calls_of_a_cut_off_reply():
+    from agent.offline_llm import message, text_block, tool_use
+
+    whole = message(text_block("Let me look."), tool_use("locate", {"query": "x"}))
+    assert llm_client.kept_content(whole) == list(whole.content)
+    cut = message(text_block("Let me look."), tool_use("locate", {"query": "x"}), stop_reason="max_tokens")
+    assert [block.type for block in llm_client.kept_content(cut)] == ["text"]
+    only_call = message(tool_use("locate", {"query": "x"}), stop_reason="max_tokens")
+    assert llm_client.kept_content(only_call) == [{"type": "text", "text": "(cut off by the token limit)"}]
+
+
+def test_without_an_openai_key_the_client_builds_and_requests_fail_as_auth(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    client = OpenAIClient()
+    with pytest.raises(anthropic.AuthenticationError) as raised:
+        client.beta.messages.create(model="claude-opus-5-5", max_tokens=10,
+                                    messages=[{"role": "user", "content": "hi"}])
+    assert code_of(raised.value) == "auth"

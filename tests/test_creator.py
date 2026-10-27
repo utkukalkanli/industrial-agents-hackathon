@@ -132,3 +132,14 @@ def test_a_cancelled_import_stops_before_the_next_request():
     creator.on_step = lambda step: creator.cancel.set() if step["kind"] == "tool_done" else None
     result = creator.run()
     assert result.status == "cancelled" and len(creator.client.requests) == 1
+
+
+def test_a_tool_call_cut_off_by_the_token_limit_is_not_run():
+    cut = message(tool_use("finish", {"name": "Half"}), stop_reason="max_tokens")
+    client = ScriptedClient([cut, *SCRIPT])
+    steps: list[dict] = []
+    creator = Creator(plan_session(), client=client)
+    creator.on_step = steps.append
+    creator.run()
+    assert {"kind": "tool", "name": "finish"} != steps[0]
+    assert not [block for block in client.requests[1][1]["content"] if block.get("type") == "tool_use"]

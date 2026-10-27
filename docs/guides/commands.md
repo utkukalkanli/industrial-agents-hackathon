@@ -226,11 +226,11 @@ Atahan (once): Vercel → *Add New → Project* → import the GitHub repo. Leav
 
 | Var | Value |
 |---|---|
-| `ANTHROPIC_API_KEY` | key (without it the Guide runs the offline rules) |
+| `ANTHROPIC_API_KEY` | the Claude key when the provider is `anthropic` (without the provider's key the Guide runs the offline rules) |
 | `SUPABASE_DB_URL` | Transaction pooler URI (port 6543), same as `.env` |
 | `GUIDE_MODEL` / `GUIDE_EFFORT` | optional (defaults `claude-opus-5-5` / `medium`; Sonnet + `low` is cheaper and faster) |
 | `LLM_PROVIDER` | optional: `openai` or `anthropic` (unset → `anthropic` only when `ANTHROPIC_API_KEY` is the only key set, else `openai`); every LLM part uses it ([D-024](../../memory-bank/decisions.md#d-024)) |
-| `OPENAI_API_KEY` | the OpenAI key when the provider is `openai` |
+| `OPENAI_API_KEY` | the OpenAI key when the provider is `openai` (the default); without it requests fail with the readable `auth` error unless the Guide is offline |
 | `OPENAI_MODEL` / `OPENAI_MID_MODEL` / `OPENAI_SMALL_MODEL` | optional: the OpenAI models for Claude opus / sonnet / haiku ids (defaults `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna`) |
 | `OPENAI_SERVICE_TIER` | optional: the tier of the big (opus-mapped) model's calls; default `ultrafast` on `gpt-6.1-sol` / `gpt-6-astra` (same model, faster output), `default` turns it off |
 | `GUIDE_SPEED` | optional: `fast` (default — Opus fast mode, same model, ~2× faster turns, 2× token price) or `standard` |

@@ -573,13 +573,14 @@ class Guide:
         said: list[str] = []  # text from every round, including any written before tool calls
         for _ in range(MAX_TOOL_ROUNDS):
             response = self.request()
-            self.messages.append({"role": "assistant", "content": response.content})
+            content = llm_client.kept_content(response)
+            self.messages.append({"role": "assistant", "content": content})
             if response.stop_reason == "refusal":
                 return GuideTurn("Sorry, I can't help with that one.", calls, stop_reason="refusal")
             said += [block.text.strip() for block in response.content if block.type == "text" and block.text.strip()]
             if response.stop_reason == "pause_turn":
                 continue
-            uses = [block for block in response.content if block.type == "tool_use"]
+            uses = [block for block in content if getattr(block, "type", None) == "tool_use"]
             if response.stop_reason != "tool_use" or not uses:
                 if response.stop_reason == "max_tokens":
                     said.append("(My answer was cut off — ask me to continue.)")

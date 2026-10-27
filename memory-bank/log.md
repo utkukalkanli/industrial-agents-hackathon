@@ -8,6 +8,21 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-27 23:45 — cut-off tool calls dropped from history; keyless OpenAI client reports `auth`
+
+- **Did:** the reviewer's findings on commit 9de6162. `llm_client.kept_content(response)`: a reply cut off by the
+  token limit loses its tool_use blocks (placeholder text if nothing is left), used by the Guide, Builder, Creator
+  and solver agent loops. Before, the Guide/Builder kept the dangling call (next request refused by the API), the
+  Creator ran it with `{}` input, the solver agent followed it with plain text. `OpenAIClient` without a key builds
+  (`MissingKey`) and fails its first request as a 401 → `anthropic.AuthenticationError` → code `auth`, like a wrong
+  key, instead of a raw `openai.OpenAIError` at construction. Builder provider test clears `GUIDE_LLM`; tier
+  docstring and the commands.md env rows corrected.
+- **Learned:** the dangling tool_use after `max_tokens` predates OpenAI (Claude path too); OpenAI makes it likelier
+  because reasoning tokens count toward `max_output_tokens`.
+- **Checked:** new tests red first (Guide, Creator, `kept_content`, keyless client), then green; full suite below.
+- **Changed docs:** [commands.md](../docs/guides/commands.md).
+- **Next:** as before — re-measure the benchmark on OpenAI; `OPENAI_API_KEY` in Vercel.
+
 ## 2026-10-27 23:10 — /code-review fixes on the OpenAI switch (D-024 revised)
 
 - **Did:** fixed what `/code-review` found in the uncommitted D-024 work. Provider default: `LLM_PROVIDER` unset →

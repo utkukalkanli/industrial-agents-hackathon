@@ -17,7 +17,7 @@ thinking) are dropped: OpenAI caches long prefixes by itself. Reasoning items ar
 Models: a Claude id maps by family — opus → OPENAI_MODEL (default gpt-6.1-sol), sonnet → OPENAI_MID_MODEL
 (gpt-6.1-terra), haiku → OPENAI_SMALL_MODEL (gpt-6-luna); any other id is sent as it is. The opus-mapped calls
 go out at service_tier "ultrafast" when the model has it (gpt-6.1-sol, gpt-6-astra: same model, faster output;
-measured 9.3 → 4.7 s per Guide turn); OPENAI_SERVICE_TIER sets another tier ("default" turns it off). OpenAI errors are
+measured 9.3 → 4.7 s per Guide turn); OPENAI_SERVICE_TIER sends another tier instead ("default" = standard speed). OpenAI errors are
 re-raised as the matching anthropic error class, so the agents' and backend's existing handlers keep working."""
 
 import itertools
@@ -247,11 +247,27 @@ class Messages:
             yield Stream(iter(events), model)
 
 
+class MissingKey:
+    """Stands in for openai.OpenAI when no key is set: every request fails as a 401, so the agents and backend
+    report it like a wrong key (code "auth") instead of failing when the client is built."""
+
+    def __init__(self, reason: openai.OpenAIError) -> None:
+        self.reason = reason
+        self.responses = self
+
+    def create(self, **request) -> object:
+        raise openai.AuthenticationError(f"no OpenAI API key: {self.reason}", body=None,
+                                         response=httpx.Response(401, request=REQUEST))
+
+
 class OpenAIClient:
     """The Anthropic client surface the agents use (`messages`, `beta.messages`), served by OpenAI."""
 
     def __init__(self, max_retries: int | None = None, client: openai.OpenAI | None = None) -> None:
-        self.openai = client or (openai.OpenAI(max_retries=max_retries) if max_retries is not None
-                                 else openai.OpenAI())
+        try:
+            self.openai = client or (openai.OpenAI(max_retries=max_retries) if max_retries is not None
+                                     else openai.OpenAI())
+        except openai.OpenAIError as error:  # no key: built anyway, the first request reports it
+            self.openai = MissingKey(error)
         self.messages = Messages(self.openai)
         self.beta = SimpleNamespace(messages=self.messages)

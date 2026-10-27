@@ -130,7 +130,8 @@ class Creator:
                 response = self.request()
             except anthropic.APIError as error:  # credits, limits, network: end with the reason, not a traceback
                 return CreatorResult("failed", reason=f"LLM API error: {error}"[:300], usage=self.usage)
-            self.messages.append({"role": "assistant", "content": response.content})
+            content = llm_client.kept_content(response)
+            self.messages.append({"role": "assistant", "content": content})
             for block in response.content:
                 if block.type == "text" and block.text.strip():
                     self.step({"kind": "say", "text": block.text.strip()})
@@ -138,7 +139,7 @@ class Creator:
                 return CreatorResult("failed", reason="the model declined this import", usage=self.usage)
             if response.stop_reason == "pause_turn":
                 continue
-            uses = [block for block in response.content if block.type == "tool_use"]
+            uses = [block for block in content if getattr(block, "type", None) == "tool_use"]
             if not uses:
                 if nudged:
                     return CreatorResult("failed", reason="the Creator stopped without finishing", usage=self.usage)
