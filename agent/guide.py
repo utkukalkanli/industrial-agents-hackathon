@@ -32,6 +32,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 import anthropic
 
+from agent import llm_client
 from agent.rewriter import TranscriptRewriter
 from agent.speech import SpokenStream, speakable
 from agent.tools import PRESETS, PROFILE_FIELDS, BuildingSession, RoutingProfile
@@ -46,7 +47,7 @@ FAST_BETA = "fast-mode-2026-02-01"
 # On by default for the Guide; GUIDE_SPEED=standard turns it off. Its own rate limit: a 429 retries at standard.
 FAST_MODELS = {"claude-opus-5-5", "claude-opus-5", "claude-opus-4-8"}
 
-INSTRUCTIONS = """You are the Building Guide: people talk to you to find things in one building, get directions \
+INSTRUCTIONS = """You are Floorwise, the building guide: people talk to you to find things in one building, get directions \
 they can follow, and report or plan changes (a broken lift, a closed door, a new door).
 
 Facts come only from tools. Every room, item, count, distance, id and route you mention must come from a tool \
@@ -266,16 +267,18 @@ def confirmation_line(result: dict) -> str:
 
 
 def llm_mode() -> str:
-    """"anthropic" when a key is set (or GUIDE_LLM=anthropic), else "offline" (GUIDE_LLM=offline forces it)."""
+    """The provider GUIDE_LLM names ("openai" or "anthropic"), else the configured one (agent/llm_client.py)
+    when its key is set, else "offline" (GUIDE_LLM=offline forces it)."""
     choice = os.environ.get("GUIDE_LLM", "").lower()
-    real = choice == "anthropic" or (choice != "offline" and bool(os.environ.get("ANTHROPIC_API_KEY")))
-    return "anthropic" if real else "offline"
+    if choice in llm_client.PROVIDERS:
+        return choice
+    return llm_client.provider() if choice != "offline" and llm_client.has_key() else "offline"
 
 
 def make_client() -> object:
-    """Anthropic client in "anthropic" mode, else the offline rule-based client."""
-    if llm_mode() == "anthropic":
-        return anthropic.Anthropic()
+    """The provider's client (llm_client.make) in a live mode, else the offline rule-based client."""
+    if (mode := llm_mode()) != "offline":
+        return llm_client.make(name=mode)
     from agent.offline_llm import OfflineClient
 
     return OfflineClient()
@@ -381,7 +384,7 @@ class Guide:
         self.model = model or os.environ.get("GUIDE_MODEL", DEFAULT_MODEL)
         self.effort = effort or os.environ.get("GUIDE_EFFORT", DEFAULT_EFFORT)
         self.fast = (os.environ.get("GUIDE_SPEED", "fast").lower() == "fast" and self.model in FAST_MODELS
-                     and isinstance(self.client, anthropic.Anthropic))
+                     and isinstance(self.client, anthropic.Anthropic))  # fast mode is Claude-only
         self.system = system_blocks(session)
         self.messages: list[dict] = []
         self.corpus: list[str] = [overview_text(session)]
@@ -390,9 +393,9 @@ class Guide:
         self.usage = Usage()
         self.profile_note: str | None = None  # tells the model next turn what the safety net set
         self.location_note: str | None = None  # where the app's "you are here" figure stands, sent with the next turn
-        # Voice transcripts are normalised first (D-013), only when talking to the real API.
+        # Voice transcripts are normalised first (D-013), only when talking to a real API.
         self.rewriter: TranscriptRewriter | None = (
-            TranscriptRewriter(session.building) if isinstance(self.client, anthropic.Anthropic)
+            TranscriptRewriter(session.building, client=self.client) if llm_client.live(self.client)
             and os.environ.get("GUIDE_REWRITER", "on").lower() != "off" else None)
         self.on_step: Callable[[dict], None] | None = None  # live progress for the UI (backend /chat/stream)
         # voice turns: each sentence the moment it may be said (agent/speech.py SpokenStream; backend /chat/stream)
@@ -631,7 +634,7 @@ class Guide:
         return response
 
     def send(self, params: dict) -> object:
-        if self.speech is not None and isinstance(self.client, anthropic.Anthropic):
+        if self.speech is not None and llm_client.live(self.client):
             response = self.streamed(params)
         else:
             response = self.client.beta.messages.create(**params)

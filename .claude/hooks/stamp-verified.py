@@ -2,7 +2,8 @@
 
   python3 .claude/hooks/stamp-verified.py .claude/worklog/history/<entry>.md
 
-Refuses unless the entry contains a `VERDICT: PASS` line and is itself staged."""
+Refuses unless the entry contains a `VERDICT: PASS` line (commit-verifier) and a `REVIEW: PASS` line
+(code-reviewer) and is itself staged."""
 
 import re
 import subprocess
@@ -26,9 +27,11 @@ def main() -> int:
     if not entry.exists():
         print(f"refused: {entry} does not exist")
         return 1
-    if not re.search(r"^VERDICT:\s*PASS\b", entry.read_text(encoding="utf-8"), flags=re.MULTILINE):
-        print("refused: the worklog entry has no 'VERDICT: PASS' line")
-        return 1
+    text = entry.read_text(encoding="utf-8")
+    for line in ("VERDICT", "REVIEW"):
+        if not re.search(rf"^{line}:\s*PASS\b", text, flags=re.MULTILINE):
+            print(f"refused: the worklog entry has no '{line}: PASS' line")
+            return 1
     relative = entry.relative_to(ROOT).as_posix()
     if relative not in git("diff", "--cached", "--name-only").split():
         print(f"refused: {relative} is not staged")

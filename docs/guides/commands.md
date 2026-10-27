@@ -65,7 +65,8 @@ PARSER_MODE=regex uv run python -m agent.run_benchmark data/test data/test/quest
 ## Backend (Guide API)
 
 FastAPI app in `backend/` wrapping the Building Guide ([ai-agents.md](../architecture/ai-agents.md#implementation--agentguidepy-2026-10-24)).
-Without `ANTHROPIC_API_KEY` it runs the offline rule-based client; `GUIDE_LLM=offline|anthropic` forces either.
+Without the provider's key (`OPENAI_API_KEY`, or `ANTHROPIC_API_KEY` with `LLM_PROVIDER=anthropic`) it runs the
+offline rule-based client; `GUIDE_LLM=offline|openai|anthropic` forces one.
 
 ```bash
 GUIDE_LLM=offline uv run uvicorn backend.app:app --port 8765          # no key needed
@@ -228,6 +229,10 @@ Atahan (once): Vercel → *Add New → Project* → import the GitHub repo. Leav
 | `ANTHROPIC_API_KEY` | key (without it the Guide runs the offline rules) |
 | `SUPABASE_DB_URL` | Transaction pooler URI (port 6543), same as `.env` |
 | `GUIDE_MODEL` / `GUIDE_EFFORT` | optional (defaults `claude-opus-5-5` / `medium`; Sonnet + `low` is cheaper and faster) |
+| `LLM_PROVIDER` | optional: `openai` or `anthropic` (unset → `anthropic` only when `ANTHROPIC_API_KEY` is the only key set, else `openai`); every LLM part uses it ([D-024](../../memory-bank/decisions.md#d-024)) |
+| `OPENAI_API_KEY` | the OpenAI key when the provider is `openai` |
+| `OPENAI_MODEL` / `OPENAI_MID_MODEL` / `OPENAI_SMALL_MODEL` | optional: the OpenAI models for Claude opus / sonnet / haiku ids (defaults `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna`) |
+| `OPENAI_SERVICE_TIER` | optional: the tier of the big (opus-mapped) model's calls; default `ultrafast` on `gpt-6.1-sol` / `gpt-6-astra` (same model, faster output), `default` turns it off |
 | `GUIDE_SPEED` | optional: `fast` (default — Opus fast mode, same model, ~2× faster turns, 2× token price) or `standard` |
 | `CORS_ORIGINS` | optional; the frontend is same-origin, so it isn't needed |
 | `ELEVENLABS_API_KEY` | the Guide's ElevenLabs voice (`/tts`); without it the app speaks with the browser voice |
@@ -285,8 +290,8 @@ question id) — documented in [`SUBMISSION/BENCHMARK.md`](../../SUBMISSION/BENC
 pipeline: it also answers the warm-up kinds, routes included; `agent.run_benchmark` has no solvers for them). Do not
 use `PARSER_MODE=regex` on Sunday: on 14 reworded questions it answered 1 (2026-10-25). A failing question becomes an
 `error` entry and the run goes on; the file is rewritten after every question. Model decisions go to
-`llm_cache/decisions.json` — **commit it together with `SUBMISSION/answers.json`**, so a re-run without a key
-reproduces the answers ([ai-agents.md](../architecture/ai-agents.md#sunday-layers-route-specs-solver-agent-decision-cache-2026-10-25)).
+`llm_cache/decisions.json` (keyed per provider: OpenAI keys carry `@openai`) — **commit it together with
+`SUBMISSION/answers.json`**, so a re-run without a key (provider defaults to OpenAI) reproduces the answers ([ai-agents.md](../architecture/ai-agents.md#sunday-layers-route-specs-solver-agent-decision-cache-2026-10-25)).
 Probe of the agentic layers: `uv run python scripts/eval_sunday_probe.py` (`tests/sunday_probe/`, calls Claude). Output format still unannounced →
 [Q-001](../../memory-bank/open-questions.md#q-001).
 

@@ -118,6 +118,7 @@ every `tool_use` block goes to `BuildingSession.call`, all results return in one
 
 | Aspect | How |
 |---|---|
+| Provider | `LLM_PROVIDER` (`openai` / `anthropic`, unset → `anthropic` only when `ANTHROPIC_API_KEY` is the only key set, else `openai`) for every LLM part, via `agent/llm_client.py`; on OpenAI `agent/openai_llm.py` serves the same Messages interface from the Responses API (Claude ids map by family: opus → `gpt-6.1-sol`, sonnet → `gpt-6.1-terra`, haiku → `gpt-6-luna`; the big model's calls at `service_tier: "ultrafast"`; Anthropic-only fields dropped) ([D-024](../../memory-bank/decisions.md#d-024)) |
 | Model | `GUIDE_MODEL` (default `claude-opus-5-5`), `GUIDE_EFFORT` (default `medium`); thinking left at the model default (adaptive); `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`, as in `agent/llm_parser.py`. **Fast mode** (2026-10-27): `speed: "fast"` + beta `fast-mode-2026-02-01` on every Guide request (same model, faster output, 2× token price; Claude API only, Opus 5.5 / 5 / 4.8); `GUIDE_SPEED=standard` turns it off; a 429 on fast mode's own limit retries that request at standard speed. Measured on dev-004, 3 turns: 12.1–15.8 s → 7.2–7.4 s |
 | Caching | system = fixed instructions + building overview (static `BuildingMap.overview()`, no profile/closures) with `cache_control`; tools render before it, so both are cached; top-level `cache_control` also caches the growing history |
 | History | append-only (assistant `response.content` stored unchanged), so the cached prefix and thinking blocks stay valid |
@@ -125,7 +126,7 @@ every `tool_use` block goes to `BuildingSession.call`, all results return in one
 | Profile safety net | a deterministic cue detector reads every user message (wheelchair, pram, no lifts, trolley width, reset…); if the model's turn left the cue unhonoured the Guide calls `set_profile` itself, appends a one-line confirmation and, if the turn already routed, asks once for a redo. `set_profile` takes persona presets ([routing-profiles.md](../product/routing-profiles.md#implemented-presets)); tests `tests/test_profiles.py` |
 | D-003 grounding | after each turn, every number and id in the reply must appear in a tool result, the overview or the user's own messages (a number counts if a known number rounds half-up to it at the same precision, or if it is the length of a list in a tool result; numbers glued to a unit like "120m" are checked; numbered-list markers and clock times ignored — ported from the v1 Guide 2026-10-24). Fails → one repair round ("[grounding check] … appear in no tool result"); anything still ungrounded is returned in `GuideTurn.ungrounded` |
 | Place names | `BuildingSession.resolve` → `agent/places.py` (ported from the v1 Guide): id, asset id, exact ref/name after dropping "the / a / room", asset name, exact asset type ("the 3D printer" → the room holding it), then word search. One candidate → its id; several → `MapError` listing each as `id (name, ref, type, floor)` and telling the model to ask what tells them apart ([D-012](../../memory-bank/decisions.md#d-012)); none → near-miss names ("Did you mean …"). `find_route` / `tour` resolve their stops this way; a destination that fits 2–8 spaces returns every option with its route length, shortest first, and draws no route. Tests `tests/test_places.py` |
-| No key | `make_client()` → `agent/offline_llm.py` `OfflineClient`: keyword rules choose tools, replies are composed only from tool results (demo + backend tests). `GUIDE_LLM=offline|anthropic` forces either |
+| No key | `make_client()` → `agent/offline_llm.py` `OfflineClient`: keyword rules choose tools, replies are composed only from tool results (demo + backend tests). `GUIDE_LLM=offline|openai|anthropic` forces one |
 
 Tests: `tests/test_guide.py` — a scripted fake client plays the tricky user (vague printer → ≤ 3 options;
 ambiguous "the meeting room" → search → ≤ 3 options with floors; "I use a wheelchair" → `set_profile`, remembered
@@ -297,8 +298,9 @@ every model decision ─► decision cache (agent/llm_cache.py, llm_cache/decisi
   and `submit_answer` (number / space / no_route / text, validated). Two independent runs, a third when they
   disagree, majority wins (`SOLVER_AGENT_RUNS`, `SOLVER_AGENT=off`).
 - **Decision cache**: the parser's slots and the agent's submission (with the code it ran), keyed by the building's
-  content hash, the question text and a schema version. Re-running the command — also without an API key, as the
-  organisers may — replays them and reproduces `answers.json`; numbers are recomputed by code from replayed slots.
+  content hash, the question text, a schema version and the provider (OpenAI keys carry `@openai`, so a run on one
+  provider never replays the other's decisions). Re-running the command — also without an API key, as the
+  organisers may (the provider then defaults to OpenAI) — replays them and reproduces `answers.json`; numbers are recomputed by code from replayed slots.
   `LLM_CACHE=off` asks the model again; `parser` in `answers.json` says `llm-cache` / `agent-cache` on replay.
 - **Probe**: `scripts/eval_sunday_probe.py` runs `tests/sunday_probe/*.json` (reworded questions, new constraints,
   new kinds; expected answers computed by direct code) through this path and scores them.

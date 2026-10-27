@@ -375,3 +375,46 @@ Template:
   turned only by quarter turns of the angle that keeps their walls parallel to the lowest floor's.
 - **Consequences:** only the coordinate goes to Overpass; Overpass outages fall back to the map's tiles. Design:
   [plan-reference-and-location-design.md](../docs/superpowers/specs/2026-10-25-plan-reference-and-location-design.md).
+
+<a id="d-024"></a>
+### D-024 — LLM provider switch: OpenAI (Responses API) behind the Anthropic interface; app name Floorwise
+- **Status:** accepted · **Date:** 2026-10-27 · **By:** Utku
+- **Context:** The Claude API credit is running out; the app must keep working on OpenAI credit, and Claude should
+  come back with one setting once credit is there again. Six parts call the LLM (Guide, voice transcript
+  rewriter, LLM parser, solver agent, Builder, Creator), all written against the Anthropic Messages interface.
+- **Decision:** `agent/llm_client.py` picks the provider: `LLM_PROVIDER=openai|anthropic`, unset → openai when
+  `OPENAI_API_KEY` is set. `agent/openai_llm.py` serves the same `messages` / `beta.messages` (create, stream)
+  interface from OpenAI's Responses API and returns Anthropic `BetaMessage`s, so no agent loop changes; Claude ids
+  map by family (opus → `OPENAI_MODEL` gpt-6.1-sol, sonnet → `OPENAI_MID_MODEL` gpt-6.1-terra, haiku →
+  `OPENAI_SMALL_MODEL` gpt-6-luna). OpenAI errors are re-raised as the matching anthropic error classes, so the
+  backend's readable errors still work. Claude's fast mode stays Claude-only; on OpenAI the opus-mapped calls
+  use `service_tier: "ultrafast"` when the model has it (`OPENAI_SERVICE_TIER` overrides; Guide turns 9.3 → 4.7 s). The app is named **Floorwise** ("Talk to
+  your building" stays as the tagline).
+- **Consequences:** Anthropic-only features are dropped on OpenAI (explicit cache_control, fallbacks, fast mode,
+  thinking carried between turns); OpenAI caches long prefixes by itself. The benchmark numbers (0.885) were
+  measured on Claude; on OpenAI they are not re-measured yet. Tests: `tests/test_openai_llm.py`.
+- **Revised 2026-10-27 (Utku: Anthropic credit is gone and will not come back, OpenAI is the provider):**
+  `LLM_PROVIDER` unset → `anthropic` only when `ANTHROPIC_API_KEY` is the only key, else `openai` — also with no
+  key, so a keyless re-run replays OpenAI's cached decisions. Decision-cache keys carry the provider (`@openai`;
+  Claude's keep the old form), so an OpenAI run never replays Claude's answers and the OpenAI score is really
+  measured. `GUIDE_LLM=openai|anthropic` forces that provider again. Found by `/code-review`; fixes also: a tool
+  call cut off by the token limit stops with `max_tokens` (was `tool_use` with `{}` input), Creator / live_builder
+  messages name the provider's key. Tests: `tests/test_openai_llm.py` (4 new, 1 changed).
+
+<a id="d-025"></a>
+### D-025 — /ship also reviews code and blocks new ruff findings; ruff lints every edited .py file
+- **Status:** accepted · **Date:** 2026-10-27 · **By:** Utku
+- **Context:** [D-008](#d-008)'s verifier checks that claims are true, not that the code is right: a change whose
+  claims all hold can still carry a bug. The repo had no linter (ruff: 165 findings, 173 unformatted files).
+- **Decision:** extends D-008. (1) `.claude/agents/code-reviewer.md`, a fresh read-only reviewer, runs next to the
+  verifier every `/ship` round; a round passes only with `VERDICT: PASS` and `REVIEW: PASS`, and
+  `stamp-verified.py` refuses an entry without both. Only BLOCKERs (with a written failure scenario) block;
+  `commit-fixer` fixes them or disputes them with evidence. (2) `ruff` is a dev dependency; the verifier runs
+  `scripts/ruff_new.py`, which fails only on findings the staged change adds. (3) A PostToolUse hook
+  (`.claude/hooks/ruff-lint.py`) lints each edited `.py` file and reports to Claude, without auto-fix or format
+  (Utku's choice, so diffs stay limited to the real change).
+- **Consequences:** two agent runs per round instead of one; the reviewer can miss defects or raise false ones.
+  `ruff format` is not enforced; a repo-wide format is a later, separate commit.
+- **Evidence:** `ruff_new.py` on a temporary index: unchanged restage → 0, lines shifted + new import → only the
+  new findings, new file → its finding. Stamp script refuses `REVIEW: BLOCK` / missing `REVIEW:` and unstaged
+  entries. Hook fired live (F401 reported after a Write). [dev-workflow.md](../docs/guides/dev-workflow.md).

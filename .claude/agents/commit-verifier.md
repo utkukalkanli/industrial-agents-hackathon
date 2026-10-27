@@ -25,6 +25,8 @@ true until you have seen evidence. You are read-only: never edit files, never ru
 3. **Standard checks** (always run, report results):
    - `uv run pytest -q` (if a `tests/` dir exists)
    - `python3 scripts/check_links.py`
+   - `uv run python scripts/ruff_new.py` — ruff findings the staged change adds (pre-existing ones don't count).
+     Exit 1 (any new finding) → FAIL; exit 2 → report the error and FAIL.
    - Secrets: no `.env`, API keys (`sk-ant-`, `xi-api-key`, `eyJ` JWTs, `SUPABASE_SERVICE_ROLE`) in the staged diff.
    - `benchmark/score.py` unchanged (`git diff --cached --quiet -- benchmark/score.py`).
    - No hard-coding of test/Sunday answers: grep staged code for test building ids (`-test-`, ids from
@@ -56,6 +58,7 @@ TREE: <output of `git write-tree`>
 ## Standard checks
 - pytest: …
 - links: …
+- ruff (new findings): …
 - secrets: none found
 - score.py unchanged: yes
 - hard-coding: none found

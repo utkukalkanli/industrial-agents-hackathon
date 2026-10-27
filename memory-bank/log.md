@@ -8,6 +8,68 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-27 23:10 — /code-review fixes on the OpenAI switch (D-024 revised)
+
+- **Did:** fixed what `/code-review` found in the uncommitted D-024 work. Provider default: `LLM_PROVIDER` unset →
+  `anthropic` only when `ANTHROPIC_API_KEY` is the only key, else `openai`, also with no key (Utku: OpenAI is the
+  provider now). Decision-cache keys carry the provider (`parser@openai/…`), so OpenAI runs never replay Claude's
+  decisions and a keyless re-run replays OpenAI's. `GUIDE_LLM=openai|anthropic` forces that provider again
+  for the Guide, Builder and Creator (`llm_client.make(name=…)`). OpenAI responses cut off by `max_output_tokens` stop with `max_tokens` before
+  `tool_use`. `llm_client.key_name()` for the Creator / `scripts/live_builder.py` messages. Unused
+  `import anthropic` removed from builder, llm_parser, solver_agent. The Guide's `TranscriptRewriter` now shares
+  the Guide's client (it built its own from the default provider, so a forced `GUIDE_LLM` provider and the voice
+  rewriter could differ; the new OpenAI default made that fail in 2 Guide tests).
+- **Learned:** the review's "`effort=max` is invalid on OpenAI" was a false positive: the installed SDK's
+  `ReasoningEffort` includes `max` (`openai/types/shared/reasoning_effort.py`). `llm_cache/decisions.json` does not
+  exist yet, so no committed Claude decisions were orphaned.
+- **Checked:** 4 new tests red before the fix, then `tests/test_openai_llm.py` 11 passed. Full suite: first 3
+  failed (2 Guide tests → rewriter fix above; `test_creator.py` expected the old Claude-only message → now checks
+  both providers' key names), then `1055 passed, 2 skipped`. Ruff counts per touched file equal HEAD's.
+- **Changed docs:** [decisions.md](decisions.md#d-024) (revision), [ai-agents.md](../docs/architecture/ai-agents.md),
+  [commands.md](../docs/guides/commands.md), `SUBMISSION/BENCHMARK.md`, `.env.example`.
+- **Next:** re-measure the benchmark on OpenAI (D-024 says not re-measured yet); commit `llm_cache/decisions.json`
+  with the answers.
+
+## 2026-10-27 22:20 — ruff + code reviewer in /ship (D-025)
+
+- **Did:** added `ruff` (0.17.3) as a dev dependency. New PostToolUse hook `.claude/hooks/ruff-lint.py`
+  (`Write|Edit`): lints the edited `.py` file, report-only (Utku's choice: no auto-fix, no format). New
+  `scripts/ruff_new.py`: ruff findings the staged change adds (HEAD vs index, matched by rule + source line); the
+  verifier now runs it as a standard check. New `.claude/agents/code-reviewer.md`: fresh read-only reviewer that
+  runs next to the verifier every `/ship` round; only BLOCKERs (with a failure scenario) block. `/ship`,
+  `commit-fixer` (fix or dispute with evidence) and `stamp-verified.py` (needs `VERDICT: PASS` and
+  `REVIEW: PASS`) updated. [D-025](decisions.md#d-025).
+- **Learned:** with no ruff config, `ruff check .` reports 165 findings (72 fixable) and 173 files are
+  unformatted, so only *new* findings can gate commits; a repo-wide format needs its own commit.
+- **Checked:** hook pipe test + live fire (F401 after a Write; it also caught two findings in `ruff_new.py`,
+  fixed). `ruff_new.py` on a temporary index (real index untouched): unchanged → 0; shifted lines + new import →
+  only new findings; new file → its finding. Stamp script refuses missing / `BLOCK` review and unstaged entries.
+  The reviewer agent itself has not run yet (the session's agent list predates it).
+- **Changed docs:** [dev-workflow.md](../docs/guides/dev-workflow.md), [decisions.md](decisions.md#d-025),
+  [project-state.md](project-state.md).
+- **Next:** first `/ship` with the reviewer (new session); optionally a ruff rule set in `pyproject.toml` and the
+  one-off format commit.
+
+## 2026-10-27 22:10 — OpenAI provider behind the Anthropic interface (D-024); app named Floorwise
+
+- **Did:** the Claude credit is running out → every LLM part can run on OpenAI. `agent/llm_client.py` picks the
+  provider (`LLM_PROVIDER`, unset → openai when `OPENAI_API_KEY` is set); `agent/openai_llm.py` serves the
+  Anthropic `messages` / `beta.messages` (create, stream) interface from the Responses API and returns
+  `BetaMessage`s, so the Guide, rewriter, LLM parser, solver agent, Builder and Creator loops are unchanged. Claude
+  ids map by family (opus → gpt-6.1-sol, sonnet → gpt-6.1-terra, haiku → gpt-6-luna); the opus-mapped calls use
+  `service_tier: "ultrafast"`; OpenAI errors become the anthropic error classes (the app's readable errors). The
+  app is named Floorwise (tab title, README, the Guide's prompt).
+- **Checked:** pytest (offline, `tests/test_openai_llm.py` 7 tests); live `scripts/eval_guide.py` on OpenAI: 18/18
+  PASS at default tier (≈9.3 s/turn), 18/18 with ultrafast at effort medium (≈4.7 s/turn) and low (≈4.7 s/turn);
+  rewriter ("lab two twenty" → "Lab 2.20", 3.2 s), LLM parser (route, 1.8 s), `scripts/live_builder.py` (proposals
+  made, ungrounded []). The scripts' cost figures use Claude prices, not OpenAI's.
+- **Learned:** on zsh `set -- $cfg` does not split words (a loop sent "gpt-6.1-sol low" as the model id; the 404
+  came back as the readable error, which checked that path).
+- **Changed docs:** [decisions.md](decisions.md#d-024), [commands.md](../docs/guides/commands.md),
+  [ai-agents.md](../docs/architecture/ai-agents.md), README.
+- **Next:** add `OPENAI_API_KEY` to Vercel and deploy; the Creator (plans → building) is not tried on OpenAI yet;
+  the benchmark score (0.885) was measured on Claude.
+
 ## 2026-10-27 16:07 — Guide decides instead of asking, shorter replies (D-012 revised)
 
 - **Did:** fast-mode Guide promoted to production (`dpl_HDZws4QEddvHxZVHp6Ksvzru2sqx`, dub1, `/api/health` 200).

@@ -17,12 +17,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from live_guide import cost  # noqa: E402
+
+from agent import llm_client
 from agent.builder import DEFAULT_EFFORT, DEFAULT_MODEL, Builder  # noqa: E402
 from agent.builder_tools import BuilderTools  # noqa: E402
 from agent.guide import llm_mode  # noqa: E402
 from backend.drafts import DraftStore  # noqa: E402
 from backend.sessions import load_catalogue  # noqa: E402
-from live_guide import cost  # noqa: E402
 
 
 def prompts(tools: BuilderTools) -> list[str]:
@@ -52,8 +54,8 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--effort", default=DEFAULT_EFFORT)
     args = parser.parse_args()
-    if llm_mode() != "anthropic":
-        sys.exit("needs ANTHROPIC_API_KEY (uv run --env-file .env …)")
+    if llm_mode() == "offline":
+        sys.exit(f"needs {llm_client.key_name()} (uv run --env-file .env …)")
     store = DraftStore(Path(tempfile.mkdtemp()), load_catalogue())
     draft = store.create(args.building)
     total = 0.0

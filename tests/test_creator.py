@@ -106,8 +106,11 @@ def test_stopping_without_finish_is_nudged_once_then_fails():
 
 def test_without_a_key_it_says_so(monkeypatch):
     monkeypatch.setenv("GUIDE_LLM", "offline")
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
     result = Creator(plan_session()).run()
-    assert result.status == "failed" and "ANTHROPIC_API_KEY" in result.reason
+    assert result.status == "failed" and "OPENAI_API_KEY" in result.reason
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    assert "ANTHROPIC_API_KEY" in Creator(plan_session()).run().reason
 
 
 def test_an_api_error_ends_the_import_with_its_message():

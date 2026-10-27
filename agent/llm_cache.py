@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 
+from agent import llm_client
 from core.building_map import BuildingMap
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "llm_cache" / "decisions.json"
@@ -31,8 +32,11 @@ def building_fingerprint(bmap: BuildingMap) -> str:
 
 
 def decision_key(namespace: str, version: str, bmap: BuildingMap, text: str) -> str:
+    """Keys are per provider: a run on OpenAI never replays Claude's decisions. Claude's keys keep their original
+    form (no tag), so the committed Claude decisions still replay with LLM_PROVIDER=anthropic."""
     question = hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()
-    return f"{namespace}/{version}/{building_fingerprint(bmap)[:16]}/{question[:24]}"
+    tag = "" if llm_client.provider() == "anthropic" else f"@{llm_client.provider()}"
+    return f"{namespace}{tag}/{version}/{building_fingerprint(bmap)[:16]}/{question[:24]}"
 
 
 class DecisionCache:

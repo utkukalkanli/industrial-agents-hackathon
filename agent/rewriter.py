@@ -14,6 +14,7 @@ import re
 
 import anthropic
 
+from agent import llm_client
 from agent.llm_parser import LlmUsage, building_vocabulary
 from core.building_map import BuildingMap
 
@@ -46,7 +47,7 @@ def invented_numbers(rewritten: str, transcript: str, vocabulary: str) -> list[s
 
 class TranscriptRewriter:
     def __init__(self, building: BuildingMap, client: object | None = None, model: str | None = None) -> None:
-        self.client = client if client is not None else anthropic.Anthropic()
+        self.client = client if client is not None else llm_client.make()
         self.model = model or os.environ.get("GUIDE_REWRITER_MODEL", DEFAULT_MODEL)
         self.vocabulary = building_vocabulary(building)
         self.system = [

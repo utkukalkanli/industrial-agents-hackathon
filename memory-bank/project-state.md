@@ -7,7 +7,7 @@ related: [decisions.md, open-questions.md, log.md, ../docs/architecture/solver-p
 
 # Project state
 
-[Memory bank](README.md) · Last updated: **2026-10-27** (Guide decides instead of asking — a name that fits several places goes to the nearest, replies two or three sentences, [D-012](decisions.md#d-012) revised; Guide on Opus fast mode by default, `GUIDE_SPEED`; shared solvers nearest_item / lift_closed / add_door, destination-only spaces and docks — organisers' eval 0.885; before that, 2026-10-25: buildings from plans get a reference panel + trace in Edit mode and a real map position — right-click "Create a building here", OSM fit, EXIF GPS / browser position, Edit position, supersede on re-save; branch `7-buildings-from-plans` (started as `6-plan-reference-location`), [D-023](decisions.md#d-023); before that: step guide faces the step + animated route band, step card and Guide in sync via `route_step` / `show_route_step`, `find_nearest` tool, route line from the figure, calmer voice, map building tones, round-button system — shipped on `dev`; before that: building screen "Quiet HUD" steps 1–5 with the pulls of `origin/dev` 26b908f + b352e83)
+[Memory bank](README.md) · Last updated: **2026-10-27** (app named Floorwise; every LLM part can run on OpenAI — `LLM_PROVIDER`, `agent/openai_llm.py`, [D-024](decisions.md#d-024); Guide decides instead of asking — a name that fits several places goes to the nearest, replies two or three sentences, [D-012](decisions.md#d-012) revised; Guide on Opus fast mode by default, `GUIDE_SPEED`; shared solvers nearest_item / lift_closed / add_door, destination-only spaces and docks — organisers' eval 0.885; before that, 2026-10-25: buildings from plans get a reference panel + trace in Edit mode and a real map position — right-click "Create a building here", OSM fit, EXIF GPS / browser position, Edit position, supersede on re-save; branch `7-buildings-from-plans` (started as `6-plan-reference-location`), [D-023](decisions.md#d-023); before that: step guide faces the step + animated route band, step card and Guide in sync via `route_step` / `show_route_step`, `find_nearest` tool, route line from the figure, calmer voice, map building tones, round-button system — shipped on `dev`; before that: building screen "Quiet HUD" steps 1–5 with the pulls of `origin/dev` 26b908f + b352e83)
 
 ## Phase
 
@@ -67,8 +67,10 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   live mic; button restyle and light-mode map tones not checked visually.
 - Licensing: `LICENSE` (MIT, our code only), `NOTICE.md` (third-party paths + terms), `data/README.md`
   (per-source data licences) — [D-009](decisions.md#d-009) accepted.
-- Verified-commit workflow in `.claude/` (verifier + fixer agents, `/ship` skill, commit-gate hook, worklog) —
-  [D-008](decisions.md#d-008), [dev-workflow.md](../docs/guides/dev-workflow.md).
+- Verified-commit workflow in `.claude/` (verifier + code-reviewer + fixer agents, `/ship` skill, commit-gate
+  hook, worklog; verifier fails on new ruff findings via `scripts/ruff_new.py`; PostToolUse hook lints each edited
+  `.py` with ruff) — [D-008](decisions.md#d-008), [D-025](decisions.md#d-025),
+  [dev-workflow.md](../docs/guides/dev-workflow.md).
 - Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git, the only remote (2026-10-27:
   fork detached on GitHub, `upstream` = atahankilc/industrial-agents-hackathon removed locally; first commit
   `3300e6c` was pushed there). Working branch: `7-buildings-from-plans` (tracks `origin/7-buildings-from-plans`).
@@ -329,8 +331,9 @@ has no swing info. Next: Guide events on the plan
 
 ## Next priorities
 
-0. **2026-10-27:** fast-mode Guide is in production (`dpl_HDZws4QEddvHxZVHp6Ksvzru2sqx`); deploy the "decide, don't
-   ask" Guide (D-012 revised); decide on fast mode for the Builder / Creator / LLM parser; optionally delete the two deployments whose source holds the organisers'
+0. **2026-10-27:** OpenAI provider (D-024) — add `OPENAI_API_KEY` to Vercel and deploy; try the Creator on OpenAI.
+   In production: the "decide, don't ask" Guide on Claude fast mode (`dpl_A1pdhbuAy2J3ChuhhBzMx6voJ76x`, commit
+   8d4433a). Optionally delete the two deployments whose source holds the organisers'
    zips (`dpl_CxMW5axbcPZr53mdTBu8fLGpQK8v` and its preview).
 00. **Submission (2026-10-25):** `SUBMISSION/BENCHMARK.md` + `SUBMISSION/answers.json` (v1, test set) exist. When the
    Sunday building is released: `uv run python -m agent.run_benchmark_v1 <building_dir> <questions>

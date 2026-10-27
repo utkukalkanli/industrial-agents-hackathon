@@ -13,6 +13,19 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/ruff-lint.py\"",
+            "timeout": 40,
+            "statusMessage": "Linting with ruff"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

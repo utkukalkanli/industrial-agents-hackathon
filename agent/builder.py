@@ -17,8 +17,7 @@ import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
-import anthropic
-
+from agent import llm_client
 from agent.builder_tools import BUILDER_TOOLS, BuilderTools, Proposal
 from agent.guide import FALLBACK_BETA, MAX_TOKENS, Usage, llm_mode, ungrounded
 from backend.drafts import Draft, DraftStore
@@ -79,8 +78,8 @@ class BuilderTurn:
 
 
 def make_builder_client() -> object:
-    if llm_mode() == "anthropic":
-        return anthropic.Anthropic()
+    if (mode := llm_mode()) != "offline":
+        return llm_client.make(name=mode)
     from agent.builder_offline import BuilderOfflineClient
 
     return BuilderOfflineClient()

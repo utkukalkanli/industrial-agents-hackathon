@@ -24,8 +24,7 @@ import traceback
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 
-import anthropic
-
+from agent import llm_client
 from agent.llm_cache import DecisionCache, decision_key
 from core import solvers_v1
 from core.building_map import BuildingMap
@@ -298,12 +297,12 @@ def building_summary(bmap: BuildingMap) -> str:
     return "\n".join(lines)
 
 
-def make_client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(max_retries=API_RETRIES)
+def make_client() -> object:
+    return llm_client.make(max_retries=API_RETRIES)  # Anthropic or OpenAI (agent/llm_client.py)
 
 
 class SolverAgent:
-    def __init__(self, client: anthropic.Anthropic | None = None, runs: int | None = None, model: str | None = None,
+    def __init__(self, client: object | None = None, runs: int | None = None, model: str | None = None,
                  effort: str | None = None, cache: DecisionCache | None = None) -> None:
         self._client = client  # created on the first model call, so cached answers need no API key
         self.runs = RUNS if runs is None else runs
@@ -311,7 +310,7 @@ class SolverAgent:
         self.cache = cache if cache is not None else DecisionCache.configured()
 
     @property
-    def client(self) -> anthropic.Anthropic:
+    def client(self) -> object:
         if self._client is None:
             self._client = make_client()
         return self._client

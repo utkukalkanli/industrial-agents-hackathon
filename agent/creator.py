@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 
 import anthropic
 
+from agent import llm_client
 from agent.creator_tools import CREATOR_TOOLS, CreatorTools, ImportSession
 from agent.guide import FALLBACK_BETA, MAX_TOKENS, Usage, llm_mode
 
@@ -83,8 +84,8 @@ class Creator:
         self.session = session
         self.tools = CreatorTools(session)
         self.client = client
-        if client is None and llm_mode() == "anthropic":
-            self.client = anthropic.Anthropic()
+        if client is None and (mode := llm_mode()) != "offline":
+            self.client = llm_client.make(name=mode)
         self.model = model or os.environ.get("CREATOR_MODEL", DEFAULT_MODEL)
         self.effort = effort or os.environ.get("CREATOR_EFFORT", DEFAULT_EFFORT)
         self.system = [{"type": "text", "text": INSTRUCTIONS, "cache_control": {"type": "ephemeral"}}]
@@ -118,7 +119,7 @@ class Creator:
 
     def run(self) -> CreatorResult:
         if self.client is None:
-            return CreatorResult("failed", reason="the Creator needs Claude (set ANTHROPIC_API_KEY)")
+            return CreatorResult("failed", reason=f"the Creator needs an LLM key (set {llm_client.key_name()})")
         self.messages = [{"role": "user", "content": self.opening()}]
         nudged = False
         for _ in range(self.max_rounds):
@@ -128,7 +129,7 @@ class Creator:
             try:
                 response = self.request()
             except anthropic.APIError as error:  # credits, limits, network: end with the reason, not a traceback
-                return CreatorResult("failed", reason=f"Claude API error: {error}"[:300], usage=self.usage)
+                return CreatorResult("failed", reason=f"LLM API error: {error}"[:300], usage=self.usage)
             self.messages.append({"role": "assistant", "content": response.content})
             for block in response.content:
                 if block.type == "text" and block.text.strip():

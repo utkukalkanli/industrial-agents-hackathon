@@ -3,7 +3,8 @@
 One command from the repo root, no manual steps between input and output. It runs in the default `hybrid` parser
 mode: the template parser first (deterministic, no LLM), and an LLM only for wording no template matches. The LLM
 only maps the question to a kind and room/floor ids (or hands it to the solver agent, below); every number still
-comes from code. It needs `ANTHROPIC_API_KEY` in `.env` (copy `.env.example`); the runner reads `.env` itself, so
+comes from code. It needs `OPENAI_API_KEY` in `.env` (copy `.env.example`; `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`
+for Claude); the runner reads `.env` itself, so
 `--env-file .env` is optional.
 
 ```bash
@@ -45,8 +46,9 @@ model. Questions no solver kind answers go to the solver agent (`agent/solver_ag
 answer with Python over the loaded building and submits it; the `Answer:` line is still written by code.
 
 **Reproducible without an API key:** every model decision (the parser's slots, the agent's submitted answer and
-the code it ran) is stored in `llm_cache/decisions.json`, keyed by the building's content, the question text and a
-schema version. Re-running the command replays them — no key needed — and reproduces `answers.json`; the
+the code it ran) is stored in `llm_cache/decisions.json`, keyed by the building's content, the question text, a
+schema version and the provider (OpenAI by default, also with no key).
+Re-running the command replays them — no key needed — and reproduces `answers.json`; the
 `parser` field then reads `llm-cache` / `agent-cache`. `LLM_CACHE=off` asks the model again.
 
 Kinds covered: `route_query` (combined route constraints), `agent` (solver agent), the benchmark kinds (`largest_room`, `floor_area_total`, `shared_walls_count`, `room_stacked`,

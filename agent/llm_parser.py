@@ -18,8 +18,7 @@ import json
 import os
 from dataclasses import dataclass
 
-import anthropic
-
+from agent import llm_client
 from agent.llm_cache import DecisionCache, decision_key
 from core.building_map import BuildingMap, MapError
 from core.question_parser import ANSWER_INSTRUCTION, ParsedQuestion, ParseError, Resolver, normalise
@@ -166,8 +165,8 @@ Rules:
 - Numbers only for min_width_m, in metres as written in the question."""
 
 
-def make_client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(max_retries=API_RETRIES)
+def make_client() -> object:
+    return llm_client.make(max_retries=API_RETRIES)  # Anthropic or OpenAI (agent/llm_client.py)
 
 
 class NeedsAgent(ParseError):
@@ -330,13 +329,13 @@ def build(slots: dict, building_map: BuildingMap) -> ParsedQuestion:
 
 
 class LlmQuestionParser:
-    def __init__(self, client: anthropic.Anthropic | None = None, cache: DecisionCache | None = None) -> None:
+    def __init__(self, client: object | None = None, cache: DecisionCache | None = None) -> None:
         self._client = client  # created on the first model call, so cached decisions need no API key
         self.cache = cache if cache is not None else DecisionCache.configured()
         self.usage = LlmUsage()
 
     @property
-    def client(self) -> anthropic.Anthropic:
+    def client(self) -> object:
         if self._client is None:
             self._client = make_client()
         return self._client

@@ -1,6 +1,6 @@
-# Talk to Your Building
+# Floorwise
 
-Agent-first indoor navigation for the Industrial Agents Hackathon 2026, Track 01 (Synera). Ask a building where
+*Talk to your building.* Agent-first indoor navigation for the Industrial Agents Hackathon 2026, Track 01 (Synera). Ask a building where
 things are, how to get there, and what changes when a lift closes; a deterministic geometry/graph core computes
 every answer and the LLM handles the language.
 
@@ -9,7 +9,7 @@ Project knowledge base: [CLAUDE.md](CLAUDE.md) → [docs/README.md](docs/README.
 
 ## Setup
 
-You need Python ≥ 3.12, [uv](https://docs.astral.sh/uv/) and an Anthropic API key. The organiser kit's dataset
+You need Python ≥ 3.12, [uv](https://docs.astral.sh/uv/) and an OpenAI or Anthropic API key (`LLM_PROVIDER`, D-024). The organiser kit's dataset
 is committed in `data/`, so one clone is enough.
 
 ```bash
@@ -17,7 +17,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh      # if uv is missing
 git clone https://github.com/atahankilc/industrial-agents-hackathon.git
 cd industrial-agents-hackathon
 uv sync
-cp .env.example .env                                  # put ANTHROPIC_API_KEY in .env (never commit it)
+cp .env.example .env                                  # put OPENAI_API_KEY (or ANTHROPIC_API_KEY) in .env, never commit it
 ```
 
 ## Running the Synera kit
