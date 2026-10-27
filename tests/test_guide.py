@@ -9,7 +9,10 @@ import copy
 import json
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
+import anthropic
+import httpx2
 import pytest
 
 from agent.guide import Guide, ungrounded
@@ -270,3 +273,50 @@ def test_offline_client_runs_the_same_conversation(session):
     assert "Shall I apply" in guide.reply("Lift 1 is broken").text and not session.applied
     turn = guide.reply("yes")
     assert session.applied and "About 95 m" in turn.text and turn.ungrounded == []
+
+
+class FastProbeClient(anthropic.Anthropic):
+    """A real Anthropic client type (so the Guide may ask for fast mode) whose requests never leave the test:
+    `limited` fast requests raise a 429, every request is recorded and answered with one text block."""
+
+    def __init__(self, limited: int = 0) -> None:
+        super().__init__(api_key="test")
+        self.calls: list[dict] = []
+        self.limited = limited
+        probe = self
+
+        class Messages:
+            def create(self, **params):
+                probe.calls.append(params)
+                if params.get("speed") == "fast" and probe.limited:
+                    probe.limited -= 1
+                    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+                    raise anthropic.RateLimitError("fast limit", response=httpx2.Response(429, request=request),
+                                                   body=None)
+                reply = message(text_block("Hello."))
+                reply.usage.speed = params.get("speed", "standard")
+                return reply
+
+        self._probe_messages = Messages()
+
+    @property
+    def beta(self):
+        return SimpleNamespace(messages=self._probe_messages)
+
+
+def test_guide_asks_for_fast_mode_and_falls_back_to_standard_on_its_rate_limit(monkeypatch):
+    monkeypatch.delenv("GUIDE_SPEED", raising=False)
+    client = FastProbeClient(limited=1)
+    guide = Guide(BuildingSession.load(BUILDING), client=client)
+    guide.reply("Hello")
+    assert [call.get("speed") for call in client.calls] == ["fast", None]
+    assert "fast-mode-2026-02-01" in client.calls[0]["betas"] and "fast-mode-2026-02-01" not in client.calls[1]["betas"]
+    guide.reply("Hello again")
+    assert client.calls[-1]["speed"] == "fast" and guide.usage.fast_requests == 1
+
+
+def test_guide_speed_standard_turns_fast_mode_off(monkeypatch):
+    monkeypatch.setenv("GUIDE_SPEED", "standard")
+    client = FastProbeClient()
+    Guide(BuildingSession.load(BUILDING), client=client).reply("Hello")
+    assert "speed" not in client.calls[0]

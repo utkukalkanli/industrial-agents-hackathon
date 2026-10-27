@@ -41,6 +41,10 @@ DEFAULT_EFFORT = "medium"  # override with GUIDE_EFFORT (low | medium | high | x
 MAX_TOKENS = 16000
 MAX_TOOL_ROUNDS = 12
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+FAST_BETA = "fast-mode-2026-02-01"
+# Fast mode: the same model with faster output (Claude API only; Opus 5.5 / 5 / 4.8), at twice the token price.
+# On by default for the Guide; GUIDE_SPEED=standard turns it off. Its own rate limit: a 429 retries at standard.
+FAST_MODELS = {"claude-opus-5-5", "claude-opus-5", "claude-opus-4-8"}
 
 INSTRUCTIONS = """You are the Building Guide: people talk to you to find things in one building, get directions \
 they can follow, and report or plan changes (a broken lift, a closed door, a new door).
@@ -366,6 +370,7 @@ class Usage:
     output_tokens: int = 0
     cache_read_input_tokens: int = 0
     cache_creation_input_tokens: int = 0
+    fast_requests: int = 0
 
 
 class Guide:
@@ -375,6 +380,8 @@ class Guide:
         self.client = client if client is not None else make_client()
         self.model = model or os.environ.get("GUIDE_MODEL", DEFAULT_MODEL)
         self.effort = effort or os.environ.get("GUIDE_EFFORT", DEFAULT_EFFORT)
+        self.fast = (os.environ.get("GUIDE_SPEED", "fast").lower() == "fast" and self.model in FAST_MODELS
+                     and isinstance(self.client, anthropic.Anthropic))
         self.system = system_blocks(session)
         self.messages: list[dict] = []
         self.corpus: list[str] = [overview_text(session)]
@@ -613,6 +620,17 @@ class Guide:
             betas=[FALLBACK_BETA],
             fallbacks="default",
         )
+        if self.fast:
+            try:
+                response = self.send({**params, "speed": "fast", "betas": [FALLBACK_BETA, FAST_BETA]})
+            except anthropic.RateLimitError:  # fast mode's own limit: this request at standard speed
+                response = self.send(params)
+        else:
+            response = self.send(params)
+        self.track(response.usage)
+        return response
+
+    def send(self, params: dict) -> object:
         if self.speech is not None and isinstance(self.client, anthropic.Anthropic):
             response = self.streamed(params)
         else:
@@ -622,7 +640,6 @@ class Guide:
                     if block.type == "text":
                         self.speech.feed(block.text)
                         self.speech.end_block()
-        self.track(response.usage)
         return response
 
     def streamed(self, params: dict) -> object:
@@ -641,3 +658,4 @@ class Guide:
         self.usage.output_tokens += usage.output_tokens
         self.usage.cache_read_input_tokens += usage.cache_read_input_tokens or 0
         self.usage.cache_creation_input_tokens += usage.cache_creation_input_tokens or 0
+        self.usage.fast_requests += getattr(usage, "speed", None) == "fast"

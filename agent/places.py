@@ -45,7 +45,7 @@ def candidates(building: BuildingMap, reference: str) -> list[str]:
     entrances = building.entrance_spaces(wanted)
     if entrances:
         return entrances
-    named =[asset["space_id"] for asset in building.assets.values() if asset["name"].lower() == wanted]
+    named = [asset["space_id"] for asset in building.assets.values() if asset["name"].lower() == wanted]
     if named:
         return unique(named)
     known_types = {asset["type"] for asset in building.assets.values()}

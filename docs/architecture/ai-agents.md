@@ -116,7 +116,7 @@ every `tool_use` block goes to `BuildingSession.call`, all results return in one
 
 | Aspect | How |
 |---|---|
-| Model | `GUIDE_MODEL` (default `claude-opus-5-5`), `GUIDE_EFFORT` (default `medium`); thinking left at the model default (adaptive); `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`, as in `agent/llm_parser.py` |
+| Model | `GUIDE_MODEL` (default `claude-opus-5-5`), `GUIDE_EFFORT` (default `medium`); thinking left at the model default (adaptive); `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`, as in `agent/llm_parser.py`. **Fast mode** (2026-10-27): `speed: "fast"` + beta `fast-mode-2026-02-01` on every Guide request (same model, faster output, 2× token price; Claude API only, Opus 5.5 / 5 / 4.8); `GUIDE_SPEED=standard` turns it off; a 429 on fast mode's own limit retries that request at standard speed. Measured on dev-004, 3 turns: 12.1–15.8 s → 7.2–7.4 s |
 | Caching | system = fixed instructions + building overview (static `BuildingMap.overview()`, no profile/closures) with `cache_control`; tools render before it, so both are cached; top-level `cache_control` also caches the growing history |
 | History | append-only (assistant `response.content` stored unchanged), so the cached prefix and thinking blocks stay valid |
 | Confirm before edit | `apply_change` for a change proposed in the **same user turn** is refused with an error telling the model to show the summary and wait — enforced in code, not only in the prompt |

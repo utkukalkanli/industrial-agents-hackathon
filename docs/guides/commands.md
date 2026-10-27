@@ -70,7 +70,7 @@ Without `ANTHROPIC_API_KEY` it runs the offline rule-based client; `GUIDE_LLM=of
 ```bash
 GUIDE_LLM=offline uv run uvicorn backend.app:app --port 8765          # no key needed
 uv run --env-file .env uvicorn backend.app:app --port 8765            # real Claude once the key is set
-# GUIDE_MODEL (default claude-opus-5-5), GUIDE_EFFORT (default medium), GUIDE_BUILDING (default train/proc-campus-train-000)
+# GUIDE_MODEL (default claude-opus-5-5), GUIDE_EFFORT (default medium), GUIDE_SPEED (default fast; standard = off), GUIDE_BUILDING (default train/proc-campus-train-000)
 # voice turns: GUIDE_REWRITER=off disables the transcript rewriter (D-013), GUIDE_REWRITER_MODEL (default claude-haiku-5-5)
 curl -s localhost:8765/health
 curl -s -X POST localhost:8765/sessions -H 'content-type: application/json' -d '{"building":"train/proc-campus-train-000"}'
@@ -228,6 +228,7 @@ Atahan (once): Vercel → *Add New → Project* → import the GitHub repo. Leav
 | `ANTHROPIC_API_KEY` | key (without it the Guide runs the offline rules) |
 | `SUPABASE_DB_URL` | Transaction pooler URI (port 6543), same as `.env` |
 | `GUIDE_MODEL` / `GUIDE_EFFORT` | optional (defaults `claude-opus-5-5` / `medium`; Sonnet + `low` is cheaper and faster) |
+| `GUIDE_SPEED` | optional: `fast` (default — Opus fast mode, same model, ~2× faster turns, 2× token price) or `standard` |
 | `CORS_ORIGINS` | optional; the frontend is same-origin, so it isn't needed |
 | `ELEVENLABS_API_KEY` | the Guide's ElevenLabs voice (`/tts`); without it the app speaks with the browser voice |
 | `TTS_VOICE_ID` / `TTS_MODEL` | optional (defaults "River" `SAz9YHcvj6GT2YYXdXww` / `eleven_flash_v2_5`) |

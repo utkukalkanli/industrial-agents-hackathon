@@ -8,6 +8,22 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-27 12:51 — Guide on Opus fast mode; zips out of deployments
+
+- **Did:** measured where a Guide turn's time goes on production: page/API 0.15–0.39 s, the prompt cache hits
+  (≈14–18k cached input tokens per turn, 6–8 uncached), each model call ~1.5–2 s, 2–3 calls per turn; voice turns
+  add the transcript rewriter (Haiku, 1.3–1.9 s, sequential). Turned on Opus **fast mode** for every Guide request
+  (`agent/guide.py`: `speed: "fast"` + beta `fast-mode-2026-02-01`, `GUIDE_SPEED=standard` off, a 429 retries at
+  standard speed; `Usage.fast_requests`). Added `*.zip` to the local `.vercelignore` (the organisers' zips had gone
+  into the deployment source of `dpl_CxMW5axbcPZr53mdTBu8fLGpQK8v`).
+- **Learned:** fast mode works together with `fallbacks: "default"`; dev-004, 3 turns, real model: standard 15.8 s /
+  12.1 s → fast 7.2 s / 7.4 s, every request served fast. It costs 2× per token. The rewriter's 1.3–1.9 s can't be
+  removed without changing behaviour.
+- **Changed docs:** [ai-agents.md](../docs/architecture/ai-agents.md) (Guide model row),
+  [commands.md](../docs/guides/commands.md) (`GUIDE_SPEED`).
+- **Next:** deploy; decide on fast mode for the Builder / Creator / LLM parser; delete the two deployments whose
+  source holds the zips if wanted.
+
 ## 2026-10-27 09:46 — Organisers' internal eval: 0.464 → 0.885; destination-only spaces, docks, three new solvers
 
 - **Did:** ran the benchmark agent on the organisers' internal evaluation set (7 buildings, 252 auto-scored
