@@ -12,7 +12,8 @@
     {
       "user": "I'm in the main lobby. How do I get to the 3D printer?",
       "expect": {
-        "asked": true,
+        "asked": false,
+        "route_to": "proc-campus-dev-001-F1-S014",
         "grounded": true
       }
     },

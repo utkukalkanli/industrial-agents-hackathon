@@ -7,7 +7,7 @@ related: [decisions.md, open-questions.md, log.md, ../docs/architecture/solver-p
 
 # Project state
 
-[Memory bank](README.md) · Last updated: **2026-10-27** (Guide on Opus fast mode by default, `GUIDE_SPEED`; shared solvers nearest_item / lift_closed / add_door, destination-only spaces and docks — organisers' eval 0.885; before that, 2026-10-25: buildings from plans get a reference panel + trace in Edit mode and a real map position — right-click "Create a building here", OSM fit, EXIF GPS / browser position, Edit position, supersede on re-save; branch `7-buildings-from-plans` (started as `6-plan-reference-location`), [D-023](decisions.md#d-023); before that: step guide faces the step + animated route band, step card and Guide in sync via `route_step` / `show_route_step`, `find_nearest` tool, route line from the figure, calmer voice, map building tones, round-button system — shipped on `dev`; before that: building screen "Quiet HUD" steps 1–5 with the pulls of `origin/dev` 26b908f + b352e83)
+[Memory bank](README.md) · Last updated: **2026-10-27** (Guide decides instead of asking — a name that fits several places goes to the nearest, replies two or three sentences, [D-012](decisions.md#d-012) revised; Guide on Opus fast mode by default, `GUIDE_SPEED`; shared solvers nearest_item / lift_closed / add_door, destination-only spaces and docks — organisers' eval 0.885; before that, 2026-10-25: buildings from plans get a reference panel + trace in Edit mode and a real map position — right-click "Create a building here", OSM fit, EXIF GPS / browser position, Edit position, supersede on re-save; branch `7-buildings-from-plans` (started as `6-plan-reference-location`), [D-023](decisions.md#d-023); before that: step guide faces the step + animated route band, step card and Guide in sync via `route_step` / `show_route_step`, `find_nearest` tool, route line from the figure, calmer voice, map building tones, round-button system — shipped on `dev`; before that: building screen "Quiet HUD" steps 1–5 with the pulls of `origin/dev` 26b908f + b352e83)
 
 ## Phase
 
@@ -190,6 +190,8 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   `GUIDE_SPEED=standard` turns it off; a 429 on fast mode's limit retries at standard speed; 2× token price).
   dev-004, 3 turns, live: 12.1–15.8 s → 7.2–7.4 s. Haiku 5.5 / Sonnet 5.5 at low effort were not faster
   (10.4–12.8 s) — the time is per-call latency, not output length.
+  Since 2026-10-27 (D-012 revised) it decides instead of asking: `find_route` to a name that fits several places
+  routes to the nearest and returns `chosen.others`; replies are two or three sentences.
   `tests/test_guide.py`: scripted tricky-user conversation passes offline.
 - **Backend** `backend/` (FastAPI): sessions per conversation + building choice, `POST /chat`, `GET /events`,
   OpenAI-compatible streaming `/v1/chat/completions`; runs with `GUIDE_LLM=offline uv run uvicorn backend.app:app`
@@ -327,8 +329,8 @@ has no swing info. Next: Guide events on the plan
 
 ## Next priorities
 
-0. **2026-10-27:** deploy the fast-mode Guide (the local `.vercelignore` now excludes `*.zip`); decide on fast mode
-   for the Builder / Creator / LLM parser; optionally delete the two deployments whose source holds the organisers'
+0. **2026-10-27:** fast-mode Guide is in production (`dpl_HDZws4QEddvHxZVHp6Ksvzru2sqx`); deploy the "decide, don't
+   ask" Guide (D-012 revised); decide on fast mode for the Builder / Creator / LLM parser; optionally delete the two deployments whose source holds the organisers'
    zips (`dpl_CxMW5axbcPZr53mdTBu8fLGpQK8v` and its preview).
 00. **Submission (2026-10-25):** `SUBMISSION/BENCHMARK.md` + `SUBMISSION/answers.json` (v1, test set) exist. When the
    Sunday building is released: `uv run python -m agent.run_benchmark_v1 <building_dir> <questions>

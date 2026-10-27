@@ -158,9 +158,12 @@ Template:
   duplicated with the same ref). The question text then cannot say which room is meant: all 12 train+dev misses
   (2 benchmark, 10 warm-up) are such texts. The floor is usually already in the text, so it does not help.
 - **Decision:** `core/` stays deterministic and never guesses: the parser returns every candidate
-  (`ParsedQuestion.alternatives`). **Guide (chat):** run the solver for each candidate; if the answers agree, answer;
-  if they differ, ask one short question naming what tells them apart — ref ("0.10, 0.11 or 0.12?"), else size,
-  neighbour or position, or highlight them on the plan. **Benchmark (no user):** as in [D-007](#d-007), run every
+  (`ParsedQuestion.alternatives`). **Guide (chat):** ~~if the answers differ, ask one short question naming what
+  tells them apart~~ — **revised 2026-10-27 (Utku): the Guide decides instead of asking.** `find_route` to a name
+  that fits several places routes to the nearest reachable one and returns the next two as `chosen.others`
+  (`find_nearest` already did this); the Guide names the one it took in a few words and lists the others only if
+  asked. It asks only when nothing tells the places apart and the answer depends on it (e.g. no start known).
+  Reason: users found it asked too much. **Benchmark (no user):** as in [D-007](#d-007), run every
   candidate and answer if they agree; otherwise answer with the first and say so in the reply.
 - **Consequences:** benchmark misses on such texts are accepted; the Guide needs a candidate-describing tool
   (ref, floor, area, neighbours). Contract: [ai-agents.md](../docs/architecture/ai-agents.md#building-guide--behaviour-contract).

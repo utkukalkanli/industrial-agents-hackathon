@@ -8,6 +8,21 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-27 16:07 — Guide decides instead of asking, shorter replies (D-012 revised)
+
+- **Did:** fast-mode Guide promoted to production (`dpl_HDZws4QEddvHxZVHp6Ksvzru2sqx`, dub1, `/api/health` 200).
+  Utku: the Guide talks and asks too much → [D-012](decisions.md#d-012) revised. `find_route` to a name that fits
+  several places now routes to the nearest reachable one and returns the next two as `chosen.others` (error only
+  when none is reachable); the Guide prompt says decide, name the one taken in a few words, ask only when nothing
+  tells the places apart and the answer depends on it, and keep replies to two or three sentences. The grounding
+  id pattern now needs a digit ("step-by-step" was flagged as an ungrounded id). `scripts/eval_guide.py` counts
+  `find_nearest` routes for `route_to`.
+- **Checked:** pytest 1040 passed; live `scripts/eval_guide.py` 18/18 turns PASS (Opus fast, $0.16);
+  `printers_two_rooms.json` turn 2 now expects no question and the route to Makerspace 1.14 (38.2 m, nearest).
+- **Changed docs:** [decisions.md](decisions.md#d-012), [ai-agents.md](../docs/architecture/ai-agents.md)
+  (behaviour contract).
+- **Next:** deploy (preview, then promote); optionally delete the two deployments whose source holds the zips.
+
 ## 2026-10-27 12:51 — Guide on Opus fast mode; zips out of deployments
 
 - **Did:** measured where a Guide turn's time goes on production: page/API 0.15–0.39 s, the prompt cache hits

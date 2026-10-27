@@ -59,14 +59,16 @@ def test_unknown_place_says_so_without_suggestions(session):
         session.resolve("zzzz qqqq")
 
 
-def test_route_to_an_asset_in_several_rooms_lists_each_with_its_length(session):
-    events = len(session.events)
-    result = session.call("find_route", {"start": "Office 0.02", "destination": "printer"})
-    assert "ambiguous" in result["error"]
-    lengths = [option["length_m"] for option in result["options"]]
+def test_route_to_an_asset_in_several_rooms_goes_to_the_nearest_and_lists_the_next(session):
+    options = session.destination_options(f"{PREFIX}-F0-S002", "printer", [])
+    lengths = [option["length_m"] for option in options["options"]]
     assert len(lengths) == 4 and lengths == sorted(lengths)
-    assert all(f"{option['length_m']} m" in result["error"] for option in result["options"])
-    assert len(session.events) == events  # no route drawn while the destination is open
+    assert all(f"{option['length_m']} m" in options["error"] for option in options["options"])
+    result = session.call("find_route", {"start": "Office 0.02", "destination": "printer"})
+    assert result["reachable"] and result["space_path"][-1] == options["options"][0]["id"]
+    assert result["length_m"] == lengths[0]
+    assert [other["id"] for other in result["chosen"]["others"]] == [o["id"] for o in options["options"][1:3]]
+    assert session.events[-1]["type"] == "route"
 
 
 def test_route_with_resolvable_names_still_works(session):

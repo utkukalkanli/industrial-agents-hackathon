@@ -74,11 +74,9 @@ def ask_which_printer(request: dict) -> object:
     return message(text_block(f"There are {len(hits)} printers. Nearest options: {options}. Which floor are you on?"))
 
 
-def ask_which_meeting_room(request: dict) -> object:
-    found = results(request)[0]["results"]
-    rooms = [item for item in found if item["kind"] == "space"][:3]
-    options = ", ".join(f"{room['name']} ({room['floor']})" for room in rooms)
-    return message(text_block(f"Which meeting room do you mean: {options}?"))
+def name_the_nearest_meeting_room(request: dict) -> object:
+    route = results(request)[0]
+    return message(text_block(f"Taking you to the nearest one, {route['steps'][-1]}, about {route['about_m']} m."))
 
 
 def give_directions(request: dict) -> object:
@@ -128,8 +126,7 @@ TRICKY_USER = [
                               say("Got it: step-free routes, and I assumed doors of at least 0.8 m.")]),
     ("Take me from the main lobby to the meeting room.", [
         call(("find_route", {"start": "Main lobby", "destination": "Meeting room"})),
-        call(("search", {"query": "meeting room"})),
-        ask_which_meeting_room,
+        name_the_nearest_meeting_room,
     ]),
     ("3.07 please", [call(("find_route", {"start": "Main lobby", "destination": "Meeting room 3.07"})),
                      give_directions]),
@@ -160,9 +157,10 @@ def test_tricky_user_conversation(session):
     assert wheelchair.auto_profile is None and len(wheelchair.tool_calls) == 1  # the model did it: no safety net
 
     vague = turns["Take me from the main lobby to the meeting room."]
-    assert "ambiguous" in vague.tool_calls[0]["result"]["error"]
-    assert vague.text.count("Meeting room") == 3 and "Floor" in vague.text
-    assert not [event for event in vague.events if event["type"] == "route"]
+    nearest = vague.tool_calls[0]["result"]  # several meeting rooms: the nearest, no question (D-012)
+    assert nearest["reachable"] and len(nearest["chosen"]["others"]) == 2
+    assert all(other["length_m"] >= nearest["length_m"] for other in nearest["chosen"]["others"])
+    assert "?" not in vague.text and [event for event in vague.events if event["type"] == "route"]
 
     directions = turns["3.07 please"]
     route = directions.tool_calls[0]["result"]
@@ -250,6 +248,7 @@ def test_ungrounded_rules():
     assert ungrounded("1. Go.\n2. Turn.\n3. Arrive, 124.2 m.", corpus) == []  # list markers, rounding
     assert ungrounded("Your 80 cm trolley fits.", corpus) == []  # the user's own numbers
     assert ungrounded("About 125 m, 3.4 km, id x-F3-S008.", corpus) == ["x-F3-S008", "125", "3.4"]
+    assert ungrounded("Say start for the step-by-step guide, door-to-door.", corpus) == []  # words, not ids
 
 
 # ---------- loop edges ----------

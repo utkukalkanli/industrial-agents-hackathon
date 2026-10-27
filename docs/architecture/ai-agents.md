@@ -89,11 +89,13 @@ events — so one call answers "what happens if…", and the model never counts 
 
 ## Building Guide — behaviour contract
 
-- **Ask only what changes the answer.** If a search returns several candidates and the words don't settle it,
-  run the solver for each; if the answers agree, just answer. If they differ, ask one short question listing
-  ≤ 3 options by what tells them apart — ref first, else floor, size, a neighbour or position (duplicate names
-  usually share the floor) — or highlight them on the plan ([D-012](../../memory-bank/decisions.md#d-012)). Never ask where the user is if the question doesn't
-  need it; once known, remember it for the session.
+- **Decide, don't ask** (revised 2026-10-27). A name that fits several places goes to the nearest:
+  `find_route` routes there and returns the next two as `chosen.others`, `find_nearest` ranks by walking
+  distance. The Guide names the one it took in a few words and lists the others only if asked; it asks one short
+  question only when nothing tells the places apart and the answer depends on it
+  ([D-012](../../memory-bank/decisions.md#d-012)). Never ask where the user is if the question doesn't need it;
+  once known, remember it for the session.
+- **Short replies:** two or three sentences, no headings, tables or lists, no restating the question.
 - **Profile once, remember always.** Infer constraints (wheelchair, trolley width, no lifts, quiet) from the
   conversation, confirm once in one line, store in the session/user profile → used by every later route
   without asking twice ([routing-profiles.md](../product/routing-profiles.md)).

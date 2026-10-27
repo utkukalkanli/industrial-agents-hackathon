@@ -5,7 +5,7 @@
   uv run --env-file .env python scripts/eval_guide.py --model claude-sonnet-5-5 --effort low
 
 Each turn's `expect` is checked against the GuideTurn and the Guide's BuildingSession. Keys: `asked` (reply contains
-a question), `tools` ([] = no tool call, otherwise each name was called), `route_to` (the last reachable find_route
+a question), `tools` ([] = no tool call, otherwise each name was called), `route_to` (the last reachable find_route / find_nearest
 of the turn, else of the conversation so far, ends there and its length equals a fresh core route from the session
 state after the turn), `no_route` (no reachable route computed this turn), `step_free` (session profile flag),
 `space_ids_include` (space ids in the turn's tool results and UI events), `grounded` (no ungrounded number or id
@@ -46,9 +46,10 @@ def asks(text: str) -> bool:
 
 
 def routes(turn: GuideTurn) -> list[dict]:
-    """Reachable find_route results of the turn, in call order."""
+    """Reachable find_route / find_nearest results of the turn (find_nearest routes to what it finds), in call
+    order."""
     return [call["result"] for call in turn.tool_calls
-            if call["name"] == "find_route" and call["result"].get("reachable") is True]
+            if call["name"] in ("find_route", "find_nearest") and call["result"].get("reachable") is True]
 
 
 def space_ids(session: BuildingSession, turn: GuideTurn) -> list[str]:

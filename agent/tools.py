@@ -261,7 +261,8 @@ class BuildingSession:
                                 "asset_ids": list(asset_ids)[:MAX_RESULTS * 2]})
 
     def destination_options(self, start: str, destination: str, via: list[str]) -> dict | None:
-        """A destination phrase that fits several spaces: the route length to each, shortest first (D-012)."""
+        """A destination phrase that fits several spaces: the route length to each, shortest first. find_route takes
+        the nearest reachable one and lists the others (D-012, 2026-10-27); the error is for none reachable."""
         found = places.candidates(self.building, destination)
         if not 1 < len(found) <= places.MAX_OPTIONS:
             return None
@@ -276,7 +277,7 @@ class BuildingSession:
         extras = {option["id"]: f"{option['length_m']} m" if option["length_m"] is not None else "unreachable"
                   for option in options}
         return {"error": places.problem(self.building, destination, [o["id"] for o in options], extras),
-                "options": options}
+                "options": options, "destination": destination}
 
     # ---------- read-only tools ----------
 
@@ -349,9 +350,10 @@ class BuildingSession:
     def tool_find_route(self, start: str, destination: str, via: list[str] | None = None,
                         closed: list[str] | None = None) -> dict:
         start, via = self.stop(start), [self.stop(item) for item in via or ()]
-        if destination != OUTSIDE and (options := self.destination_options(start, destination, via)):
+        options = self.destination_options(start, destination, via) if destination != OUTSIDE else None
+        if options and options["options"][0]["length_m"] is None:
             return options
-        destination = self.stop(destination)
+        destination = options["options"][0]["id"] if options else self.stop(destination)
         route = navigation.find_route(
             self.building,
             start,
@@ -364,6 +366,11 @@ class BuildingSession:
             penalties=self.profile.penalties(),
         ).to_dict()
         route["profile"] = self.profile.describe()
+        if options:
+            route["chosen"] = {"note": f"'{options['destination']}' fits {len(options['options'])} places: routed to "
+                                       "the nearest. Name it in a few words; list the others only if asked.",
+                               "others": [option for option in options["options"][1:3]
+                                          if option["length_m"] is not None]}
         self.guide_steps(route)
         if route.get("reachable") and self.emitting:
             self.last_route = {"start": start, "destination": destination, "via": via or []}
@@ -912,7 +919,8 @@ TOOL_DEFINITIONS: list[dict] = [
      "input_schema": {"type": "object", "properties": {"space": PLACE}, "required": ["space"]}},
     {"name": "find_route", "description": "Shortest walk under the user's profile and current closures: metres, "
      "rooms passed, followable steps (turns, landmarks, rounded metres) and about_m (the rounded total). Routes never pass through production bays (destinations only) or outside "
-     "the building; reachable=false + reason means no route under these rules — tell the user so.", "input_schema": {"type": "object", "properties": {
+     "the building; reachable=false + reason means no route under these rules — tell the user so. A destination "
+     "that fits several places goes to the nearest; `chosen` lists the next ones.", "input_schema": {"type": "object", "properties": {
          "start": PLACE, "destination": PLACE, "via": {"type": "array", "items": PLACE}},
          "required": ["start", "destination"]}},
     {"name": "find_nearest", "description": "The nearest place with something (\"nearest toilet\", \"closest "
