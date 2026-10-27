@@ -118,3 +118,15 @@ def test_stops_give_one_leg_each_and_join_into_one_path(bmap: BuildingMap) -> No
                                                        abs=0.02)
     assert result["space_path"][0] == space(bmap, "Main aisle H-B1")
     assert result["space_path"][-1] == space(bmap, "Warehouse zone H-C4")
+
+
+def test_an_entrance_is_a_place_by_its_name_or_its_id() -> None:
+    from tests.test_route_models import factory, opening
+
+    building = factory()
+    building.openings["DOCK01"] = opening("DOCK01", "outside", "A", [0, 2], 3.5, "entrance")
+    building.openings["E-C"]["name"] = "Main gate"
+    assert resolve_place(building, "Dock 1") == ["A"]
+    assert resolve_place(building, "dock 01") == ["A"]
+    assert resolve_place(building, "the Main gate") == ["C"]
+    assert resolve_place(building, "Dock 2") == []

@@ -71,7 +71,7 @@ def is_walkway(space: dict) -> bool:
 
 def endpoint_only(view: BuildingMap, rules: RouteRules) -> frozenset[str]:
     """Nodes a leg may start or end at but never pass through."""
-    nodes = {OUTSIDE}
+    nodes = {OUTSIDE, *view.destination_only}
     if rules.bays_destination_only:
         nodes |= {space_id for space_id, space in view.spaces.items() if is_production_bay(space)}
     return frozenset(nodes)

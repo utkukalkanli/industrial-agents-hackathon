@@ -45,4 +45,4 @@ def solve(building: BuildingMap, kind: str, params: dict) -> SolverResult:
 
 
 # Solver modules register themselves on import.
-from core.solvers import geometry, reachability, routing, walls  # noqa: E402,F401
+from core.solvers import changes, geometry, reachability, routing, walls  # noqa: E402,F401

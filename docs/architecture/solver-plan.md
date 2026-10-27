@@ -30,6 +30,9 @@ Per-module tests: `tests/test_solvers_{geometry,walls,reachability,routing}.py`.
 | room_stacked | 6% | VERIFIED | 26/26 | geometry.py |
 | what_if_door | 2% | VERIFIED (4 examples) | 4/4 | routing.py |
 | step_free_reachable_count | 0% (Sunday?) | VERIFIED (2 examples, weak) | 2/2 | reachability.py |
+| nearest_item | — (not a kit kind) | tested (synthetic + organisers' eval, [below](#post-hackathon-kinds-and-data-rules-2026-10-27)) | — | changes.py |
+| lift_closed | — (not a kit kind) | tested (synthetic + organisers' eval) | — | changes.py |
+| add_door | — (not a kit kind) | tested (synthetic + organisers' eval) | — | changes.py |
 
 A second implementation, `core/solvers_v1.py` (`solve(bmap, kind, params)` → dict, used by `agent/answer.py` and
 the v1 Guide `agent/guide_v1/`), reaches the same 655/655 on gold inputs (`uv run pytest tests/test_solvers.py -q -s`).
@@ -123,6 +126,35 @@ is the route model of every expected answer, ported verbatim into `core/building
 (train+dev warm-up 1,338/1,338 exact with gold ids), `SUNDAY_RULES` (+ `forklift=True`) for the organisers' bay /
 forklift rules, which the kit answers don't use. `outside` is never crossed. No route under the rules →
 `reachable: false`, reason starts "no route under these rules"; the answer must say so. Open: Q-014 (3), (4).
+
+## Post-hackathon kinds and data rules (2026-10-27)
+Measured on the organisers' internal evaluation set (7 buildings, 252 auto-scored questions; shared by the
+organisers after the event, kept outside the repo; harness and scorer runs in the session log,
+[log.md](../../memory-bank/log.md)). None of this changes a kit answer: the kit data has no `through` flag and no
+entrance a question would name.
+- **`through: false`** on a space = destination only: `BuildingMap.route` drops it (node and inside walks) from
+  every leg it does not start or end, and `route_models.endpoint_only` adds it, so `navigation`, `route_query`, the
+  campus and the Guide's tools obey it too (`tests/test_route_models.py`).
+- **Entrances and docks are places**: `BuildingMap.entrance_spaces` matches an entrance by `name` or id ("Dock 1" ↔
+  `DOCK01`) → the space it opens into; used by `core/route_query.resolve_place` (after exact room names) and the
+  Guide's `agent/places.candidates`; the LLM parser's vocabulary lists them.
+- **`nearest_item`** {start, item}: assets matching `item` (`navigation.match_assets`) ranked by route distance from
+  `start` (kit graph, stairs allowed, destination-only spaces respected); ties → smaller asset id.
+- **`lift_closed`** {closed[, start]}: spaces reachable step-free from `start` (default: where the lowest floor's
+  entrances open into) **inside** the building — never round the outside — before vs after the closure; the rooms
+  and halls among the lost ones (not corridors, stairs, lifts, outdoor). A first version started from `outside`
+  and found 0 rooms on a building with an upper-floor entrance.
+- **`add_door`** {first, second}: `routing.with_new_door` (0.9 m, middle of the shared wall, on a copy), route
+  before and after.
+- **The Guide (UI) uses the same logic**: `find_nearest` for an item ranks the holders with `nearest_item` under
+  the session's route model and rules (bays destination-only, no outside, forklift) plus the profile's step-free
+  rule and closures, measures the nearest 5 with `find_route` (profile penalties) and routes to the shortest, so
+  the named nearest, its length and the drawn route agree; `nearest_item` takes `model`/`rules` (default: kit, no
+  rules = the benchmark); `propose_change` closing a lift adds
+  `step_free_lost_<lift>` from `lift_closed`; `propose_change add_door` already used `with_new_door`; `solve`
+  lists all three kinds.
+Scores (parser Sonnet 5.5, solver agent 1 run): 0.464 → 0.673 (`through`) → 0.764 (entrances) → 0.885 (three
+solvers).
 
 ## Answer formatting (all kinds)
 `core/formatter.py`: explanation lines, then `Answer: <number>[ unit]` (integers bare, else 2 decimals) or

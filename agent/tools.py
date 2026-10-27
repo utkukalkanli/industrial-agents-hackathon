@@ -37,6 +37,7 @@ from core.solvers.routing import with_new_door
 from core.solvers.walls import shared_wall_neighbours
 
 MAX_RESULTS = 15
+MAX_NEAREST_MEASURED = 5  # find_nearest for an item: holders (nearest first by the solver) measured with find_route
 # Kit README: some Swiss Dwellings floors are centred per floor rather than aligned (84 of 108 multi-floor Swiss
 # buildings have every floor's space-bbox centre within 2 m of the origin on each axis; 82 with a Euclidean 2 m
 # radius), so "directly above/below" is meaningless there.
@@ -379,6 +380,8 @@ class BuildingSession:
         are routed to (core/route_query.shortlist), so big buildings with many matches stay fast."""
         start = self.stop(start)
         closures = [*self.profile_closures(), *(closed or [])]
+        if floor_id is None and start != OUTSIDE and navigation.match_assets(self.building, query)[1]:
+            return self.nearest_item(start, query, closures, closed)
         found = navigation.locate(self.building, query, floor_id).to_dict()
         spaces = list(dict.fromkeys(hit["space_id"] for hit in found.get("assets") or []))
         if not spaces:
@@ -399,6 +402,38 @@ class BuildingSession:
                                           rules=self.route_rules(), penalties=self.profile.penalties()).to_dict()
             if route.get("reachable"):
                 ranked.append((route["length_m"], space_id))
+        if not ranked:
+            return {"error": f"No room with '{query}' is reachable from here under the current profile.",
+                    "profile": self.profile.describe()}
+        ranked.sort()
+        route = self.tool_find_route(start, ranked[0][1], closed=closed)
+        route["nearest"] = self.space_summary(ranked[0][1])
+        route["next_nearest"] = [{**self.space_summary(space_id), "about_m": about_m(length)}
+                                 for length, space_id in ranked[1:3]]
+        self.highlight([ranked[0][1]])
+        return route
+
+    def nearest_item(self, start: str, query: str, closures: list[str], closed: list[str] | None) -> dict:
+        """find_nearest for an item: the shared nearest_item solver (core/solvers/changes.py, the benchmark's
+        ranking) under this session's route model, rules, step-free rule and closures picks the holders; the
+        nearest few are then measured with the same find_route the user is shown (profile penalties included), so
+        the nearest, its length and the drawn route always agree."""
+        try:
+            holders = solve(self.building, "nearest_item", {
+                "start": start, "item": query, "step_free": self.profile.step_free, "closed": closures,
+                "model": self.route_model, "rules": self.route_rules()}).evidence["holders"]
+        except (ValueError, MapError) as error:
+            return {"error": str(error), "profile": self.profile.describe()}
+        holders = [space_id for space_id in holders if space_id != start]
+        if not holders:
+            return {"error": f"The nearest '{query}' is in the room you are in.", "nearest": self.space_summary(start)}
+        ranked = []
+        for space_id in holders[:MAX_NEAREST_MEASURED]:
+            route = navigation.find_route(self.building, start, space_id, step_free=self.profile.step_free,
+                                          closed=closures, model=self.route_model, rules=self.route_rules(),
+                                          penalties=self.profile.penalties(), include_steps=False)
+            if route.reachable:
+                ranked.append((route.length_m, space_id))
         if not ranked:
             return {"error": f"No room with '{query}' is reachable from here under the current profile.",
                     "profile": self.profile.describe()}
@@ -608,6 +643,8 @@ class BuildingSession:
         else:
             return {"error": "action must be close, reopen or add_door"}
         change.effect.update(self.predict(change))
+        if action == "close":
+            change.effect.update(self.lift_effect(change.targets))
         self.pending[change.id] = change
         try:
             comparison, _ = self.comparison(change.id)
@@ -615,6 +652,19 @@ class BuildingSession:
         except MapError:  # no last route and no entrance to compare from: the route prediction is all we have
             pass
         return {"change_id": change.id, "summary": summary, "effect": change.effect, "needs_confirmation": True}
+
+    def lift_effect(self, element_ids: list[str]) -> dict:
+        """Closing a lift: the rooms that lose step-free access from the entrance, whatever the user's profile —
+        the shared lift_closed solver (core/solvers/changes.py), as the benchmark answers it."""
+        lifts = [element for element in element_ids
+                 if self.building.connectors.get(element, {}).get("kind") == "lift"
+                 or self.building.spaces.get(element, {}).get("type") == "lift"]
+        effect = {}
+        for lift in lifts:
+            result = solve(self.building, "lift_closed", {"closed": lift})
+            effect[f"step_free_lost_{lift}"] = {"rooms": len(result.evidence["rooms"]),
+                                                "by_floor": self.names_by_floor(result.evidence["rooms"])}
+        return effect
 
     def tool_apply_change(self, change_id: str) -> dict:
         change = self.pending.pop(change_id, None)
@@ -895,7 +945,9 @@ TOOL_DEFINITIONS: list[dict] = [
      "use ids: floor_area_total/largest_room {floor_id, room_type}; shared_walls_count {start}; room_stacked "
      "{start, direction: above|below}; straight_line_3d {first, second}; wide_delivery_count {start, floor_id, "
      "min_width}; errand {start, asset_type, floor_id, room_type}; what_if_door {first, second, floor_id}; "
-     "step_free_reachable_count {closed, start, floor_id}.", "input_schema": {"type": "object", "properties": {
+     "step_free_reachable_count {closed, start, floor_id}; nearest_item {start, item} (which asset is nearest by "
+     "walking); lift_closed {closed} (rooms that lose step-free access from the entrance); add_door {first, second} "
+     "(route between them after a new door on their shared wall).", "input_schema": {"type": "object", "properties": {
          "kind": {"type": "string", "enum": sorted(SOLVERS)}, "params": {"type": "object"}},
          "required": ["kind", "params"]}},
     {"name": "set_profile", "description": "Remember the user's mobility constraints for every later route. "

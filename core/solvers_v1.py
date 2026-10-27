@@ -10,6 +10,7 @@ from shapely.geometry import Polygon
 
 from core.building_map import DOOR_PREFIX, OUTSIDE, BuildingMap, MapError
 from core.route_query import route_query
+from core.solvers import solve as shared_solve
 
 ROOM = "room"
 WALL_TOLERANCE_M = 0.35
@@ -242,6 +243,9 @@ def solve(bmap: BuildingMap, kind: str, inputs: dict) -> dict:
                      closed=inputs.get("closed"))
     if kind == "tour":
         return route(bmap, inputs["stops"][0], inputs["stops"][-1], via=inputs["stops"][1:-1])
+    if kind in ("nearest_item", "lift_closed", "add_door"):  # shared with the Guide's solve tool (core/solvers)
+        result = shared_solve(bmap, kind, inputs)
+        return {"value": result.value, "explanation": result.explanation, **result.evidence}
     if kind == "route_query":  # reworded route questions with combined constraints (agent/llm_parser.py)
         return route_query(bmap, inputs["stops"], step_free=inputs.get("step_free", False),
                            forklift=inputs.get("forklift", False), min_width=inputs.get("min_width"),

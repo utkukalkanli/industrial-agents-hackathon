@@ -33,8 +33,9 @@ def strip_leading(text: str) -> str:
 
 
 def resolve_place(bmap: BuildingMap, phrase: str, floor_id: str | None = None, is_item: bool = False) -> list[str]:
-    """Space ids a place phrase can mean (optionally on one floor): exact room name/ref, room type, then items
-    (asset id, type, name or words) — items first when `is_item` — then a word search. Empty when nothing fits."""
+    """Space ids a place phrase can mean (optionally on one floor): exact room name/ref, an entrance or dock by name
+    or id (the space it opens into), room type, then items (asset id, type, name or words) — items first when
+    `is_item` — then a word search. Empty when nothing fits."""
     text = phrase.strip()
     if text in bmap.spaces:
         return [text]
@@ -47,6 +48,9 @@ def resolve_place(bmap: BuildingMap, phrase: str, floor_id: str | None = None, i
         return [space["id"] for space in bmap.spaces.values()
                 if wanted in (normalise(space["name"]), normalise(space.get("ref") or ""))]
 
+    def entrances() -> list[str]:
+        return bmap.entrance_spaces(wanted)
+
     def room_types() -> list[str]:
         return [space["id"] for space in bmap.spaces.values() if normalise(space["room_type"]) in forms]
 
@@ -57,7 +61,7 @@ def resolve_place(bmap: BuildingMap, phrase: str, floor_id: str | None = None, i
         return [hit["id"] if hit["kind"] == "space" else bmap.assets[hit["id"]]["space_id"]
                 for hit in bmap.search(wanted)]
 
-    for tier in ((items, rooms, room_types) if is_item else (rooms, room_types, items)) + (words,):
+    for tier in ((items, rooms, entrances, room_types) if is_item else (rooms, entrances, room_types, items)) + (words,):
         found = sorted({space_id for space_id in tier()
                         if floor_id is None or bmap.spaces[space_id]["floor_id"] == floor_id})
         if found:

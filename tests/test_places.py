@@ -86,3 +86,12 @@ def test_grounding_counts_list_lengths_and_skips_clock_times():
     assert ungrounded("I found 2 options and 3 results.", corpus) == []
     assert ungrounded("The canteen opens at 10:30.", corpus) == []
     assert ungrounded("I found 4 options.", corpus) == ["4"]
+
+
+def test_an_entrance_resolves_to_the_space_it_opens_into():
+    from agent.places import candidates
+    from tests.test_route_models import factory, opening
+
+    building = factory()
+    building.openings["DOCK01"] = opening("DOCK01", "outside", "A", [0, 2], 3.5, "entrance")
+    assert candidates(building, "Dock 1") == ["A"]

@@ -31,7 +31,7 @@ MAX_TOKENS = 16000
 MAX_ATTEMPTS = 2
 API_RETRIES = 4  # the SDK retries connection errors, 429 and 5xx with backoff; a benchmark run must not lose a question
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
-VERSION = "2"  # bump when the schema or the instructions change: cached decisions of another version are not reused
+VERSION = "3"  # bump when the schema or the instructions change: cached decisions of another version are not reused
 KINDS = [
     "largest_room",
     "floor_area_total",
@@ -45,6 +45,9 @@ KINDS = [
     "locate",
     "count",
     "route",
+    "nearest_item",
+    "lift_closed",
+    "add_door",
     "other",
 ]
 ASKS_FOR = ["room", "item_location", "area_m2", "count", "distance_m", "route", "other"]
@@ -61,6 +64,9 @@ ANSWERS = {  # what each kind's solver gives back; a question asking for anythin
     "count": {"count"},
     "locate": {"item_location", "room"},
     "route": {"route", "distance_m"},
+    "nearest_item": {"item_location", "room", "distance_m", "other"},
+    "lift_closed": set(ASKS_FOR),  # "what changes?" has no fixed answer type
+    "add_door": {"distance_m", "route", "other"},
 }
 OLD_ROUTE_KINDS = {"route_step_free", "route_with_closure", "tour"}  # earlier schema; read as `route`
 NULLABLE_TEXT = {"anyOf": [{"type": "string"}, {"type": "null"}]}
@@ -136,11 +142,19 @@ Kinds and the slots each needs (every other slot is null, false or [] by its typ
   min_width_m when a load or vehicle of a stated width must pass every door;
   closures: every lift, stair, room, corridor, aisle or door named as closed, blocked, out of service or to be
   avoided (names copied from the vocabulary), else [].
+- nearest_item: start, item. Which <item> (an asset type or name: fire extinguisher, delivery point, defibrillator
+  …) is closest to start by walking. Not for "the nearest toilet / room of a type" in a route — that is `route`.
+- lift_closed: closed (the lift, its name or its lift space copied from the vocabulary). "The lift is closed /
+  out of service — what changes?": which rooms lose step-free access.
+- add_door: first, second (the two rooms the new door joins). "Add a door between X and Y; how far is it now from X
+  to Y?" (a door added and the new route between the same two rooms; a count of improved rooms is what_if_door).
 - other: anything none of these kinds answers completely. Prefer `other` over a kind that answers a different
   question; another solver will handle it.
 
 Places (start, first, second, destination, stops) are {"name", "floor", "is_item"}:
 - a room or space: its name exactly as listed, its floor name ("" if the question gives none), is_item false;
+- an entrance or dock ("from Dock 1", "at gate E2"): the phrase as the question says it, or the entrance's id or
+  name from "Entrances and docks", is_item false (it resolves to the space the entrance opens into);
 - a room type when the question means "the nearest toilet / kitchen …": name = the room type, is_item false;
 - an item when the question means the room holding it ("to the coffee machine", "pick up a pallet jack"): name =
   the asset type or asset name, is_item true, floor "" unless the question names one. Starting "at the
@@ -174,6 +188,12 @@ def building_vocabulary(building_map: BuildingMap) -> str:
     lines.append("Room types: " + ", ".join(sorted({s["room_type"] for s in building_map.spaces.values()})))
     lines.append("Asset types: " + ", ".join(sorted({a["type"] for a in building_map.assets.values()})))
     lines.append("Lifts and stairs: " + "; ".join(sorted(c["name"] for c in building_map.connectors.values())))
+    entrances = sorted(
+        f"{opening.get('name') or opening['id']} (into {building_map.spaces[space_id]['name']})"
+        for opening in building_map.openings.values() if opening["kind"] == "entrance"
+        for space_id in opening["space_ids"] if space_id in building_map.spaces
+    )
+    lines.append("Entrances and docks: " + "; ".join(entrances))
     for floor in floors:
         names = sorted({s["name"] for s in building_map.spaces.values() if s["floor_id"] == floor["id"]})
         lines.append(f"Spaces on {floor['name']}: " + "; ".join(names))
@@ -270,11 +290,41 @@ def route_spec(slots: dict, building_map: BuildingMap) -> ParsedQuestion:
                                           "min_width": min_width, "closed": closed})
 
 
+def one_place(building_map: BuildingMap, slots: dict, slot: str) -> str:
+    if not slots.get(slot):
+        raise ParseError(f"The question needs a {slot} place")
+    found = place_ids(building_map, slots[slot])
+    if len(found) != 1:
+        raise ParseError(f"'{slots[slot]['name']}' fits {len(found)} places")
+    return found[0]
+
+
+def change_spec(kind: str, slots: dict, building_map: BuildingMap) -> ParsedQuestion:
+    """nearest_item / lift_closed / add_door slots → ids for core/solvers/changes.py."""
+    if kind == "nearest_item":
+        item = slots.get("item") or slots.get("asset_type")
+        if not item:
+            raise ParseError("nearest_item needs the item")
+        return ParsedQuestion(kind, {"start": one_place(building_map, slots, "start"), "item": item})
+    if kind == "lift_closed":
+        name = slots.get("closed") or next(iter(slots.get("closures") or []), None)
+        if not name:
+            raise ParseError("lift_closed needs the closed lift")
+        try:
+            return ParsedQuestion(kind, {"closed": building_map.find_element(name)})
+        except MapError as error:
+            raise ParseError(f"Closure: {error}") from error
+    return ParsedQuestion(kind, {"first": one_place(building_map, slots, "first"),
+                                 "second": one_place(building_map, slots, "second")})
+
+
 def build(slots: dict, building_map: BuildingMap) -> ParsedQuestion:
     """Slots (from the model or the cache) → resolved question; ParseError/NeedsAgent when they don't resolve."""
     kind = check_kind(slots)
     if kind == "route":
         return route_spec(slots, building_map)
+    if kind in ("nearest_item", "lift_closed", "add_door"):
+        return change_spec(kind, slots, building_map)
     template_name, groups = slots_to_groups(slots, building_map)
     return Resolver(building_map).build(template_name, groups)
 

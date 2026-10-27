@@ -176,6 +176,16 @@ def test_production_bay_is_destination_only():
         assert find_route(building, "BAY", "B", model=model, rules=SUNDAY_RULES).space_path == ["BAY", "B"]
 
 
+def test_space_marked_through_false_is_destination_only_without_rules():
+    building = factory()
+    building.spaces["BAY"]["through"] = False
+    assert building.route("A", "B").space_path == ["A", "C", "B"]
+    assert find_route(building, "A", "B").space_path == ["A", "C", "B"]
+    assert building.route("A", "BAY").space_path == ["A", "BAY"]
+    assert building.route("BAY", "B").space_path == ["BAY", "B"]
+    assert building.route("A", "B", via=["BAY"]).space_path == ["A", "BAY", "B"]
+
+
 def test_no_route_under_the_rules_is_a_structured_answer():
     building = factory()
     building.closed.add("C")  # only the bay (or outside) is left between A and B

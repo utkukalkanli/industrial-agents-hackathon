@@ -10,6 +10,7 @@ The agent is only the conversation layer; every fact it states comes from this m
 import itertools
 import json
 import math
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -44,6 +45,11 @@ _WALKS: dict[tuple, list[tuple[str, str, float]]] = {}
 
 
 # ---------- geometry (starter kit 1.1.0, unchanged) ----------
+
+
+def entrance_key(text: str) -> str:
+    """"Dock 1", "dock 01" and "DOCK01" → "dock 1": lower-case letter and number runs, numbers without leading zeros."""
+    return " ".join(str(int(run)) if run.isdigit() else run for run in re.findall(r"[a-z]+|\d+", text.lower()))
 
 
 def outline(points: list[Point2]) -> Polygon:
@@ -250,6 +256,17 @@ class BuildingMap:
 
     # ---------- search ----------
 
+    def entrance_spaces(self, phrase: str) -> list[str]:
+        """Spaces an entrance (a dock is one) opens into, for a phrase naming it by `name` or by id: "Dock 1" fits
+        id DOCK01 (letters and numbers compared, leading zeros dropped). Empty when no entrance fits."""
+        wanted = entrance_key(phrase)
+        return sorted({
+            space_id
+            for opening in self.openings.values()
+            if opening["kind"] == "entrance" and wanted in (entrance_key(opening["id"]), entrance_key(opening.get("name", "")))
+            for space_id in opening["space_ids"] if space_id != OUTSIDE
+        }) if wanted else []
+
     def search(self, query: str, floor_level: int | None = None) -> list[dict]:
         """Spaces and assets whose name, ref or type contains every word of the query."""
         words = [word for word in query.lower().replace("_", " ").split() if word]
@@ -398,6 +415,11 @@ class BuildingMap:
                     graph.add_edge(OUTSIDE, door, weight=0.0, via=opening["id"])
         return graph
 
+    @property
+    def destination_only(self) -> frozenset[str]:
+        """Spaces marked `through: false` (none in the kit data): a route may start or end there, never pass through."""
+        return frozenset(space_id for space_id, space in self.spaces.items() if space.get("through") is False)
+
     def route(
         self, start: str, destination: str, step_free: bool = False, via: list[str] | None = None
     ) -> RouteResult:
@@ -411,8 +433,14 @@ class BuildingMap:
         legs = []
         steps: list[str] = []
         for leg_start, leg_end in itertools.pairwise(stops):
+            blocked = self.destination_only - {leg_start, leg_end}
+            leg_graph = graph if not blocked else nx.subgraph_view(
+                graph,
+                filter_node=lambda node: node not in blocked,
+                filter_edge=lambda u, v, k: graph[u][v][k].get("space") not in blocked,
+            )
             try:
-                leg_length, leg_nodes = nx.single_source_dijkstra(graph, leg_start, leg_end, weight="weight")
+                leg_length, leg_nodes = nx.single_source_dijkstra(leg_graph, leg_start, leg_end, weight="weight")
             except (nx.NetworkXNoPath, nx.NodeNotFound) as error:
                 reason = "step-free " if step_free else ""
                 raise MapError(

@@ -69,9 +69,9 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   (per-source data licences) — [D-009](decisions.md#d-009) accepted.
 - Verified-commit workflow in `.claude/` (verifier + fixer agents, `/ship` skill, commit-gate hook, worklog) —
   [D-008](decisions.md#d-008), [dev-workflow.md](../docs/guides/dev-workflow.md).
-- Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git, `upstream` =
-  https://github.com/atahankilc/industrial-agents-hackathon.git (public; first commit `3300e6c` was pushed there).
-  Working branch (2026-10-26): `7-buildings-from-plans` (tracks `upstream/7-buildings-from-plans`).
+- Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git, the only remote (2026-10-27:
+  fork detached on GitHub, `upstream` = atahankilc/industrial-agents-hackathon removed locally; first commit
+  `3300e6c` was pushed there). Working branch: `7-buildings-from-plans` (tracks `origin/7-buildings-from-plans`).
 
 ## What works (verified 2026-10-24)
 
@@ -240,6 +240,11 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
     with per-leg `space_path`/`element_path`) out; produced `submissions/team_jaRAG.csv` (145 rows).
   - `BuildingMap.route()` per-leg paths exact on all 1,338 train+dev warm-up routes (`tests/test_routes.py`);
     warm-up kinds from text 2,120/2,130 (`tests/test_warm_up.py`; 10 misses = duplicate names, [D-012](decisions.md#d-012)).
+  - 2026-10-27, organisers' internal evaluation set (after the event, not in the repo): `through: false` spaces are
+    destinations only, entrances/docks are places, new shared solvers `nearest_item` / `lift_closed` / `add_door`
+    (`core/solvers/changes.py`, also in the Guide's `solve` tool). Score 0.464 → 0.885 on its 252 auto-scored
+    questions (parser Sonnet 5.5, 1 solver-agent run); weakest: `tour` (most go to the solver agent, no answer).
+    Details: [solver-plan.md](../docs/architecture/solver-plan.md#post-hackathon-kinds-and-data-rules-2026-10-27).
   - v1 Guide `agent/guide_v1/` (plan: [guide-agent](../docs/superpowers/plans/2026-10-24-guide-agent.md)): 6 tools
     (locate, find_places, place_info, building_fact, route, update_session), candidate fan-out for ambiguous names,
     grounding check with one repair then a code fallback; REPL `uv run --env-file .env python -m agent.guide_v1

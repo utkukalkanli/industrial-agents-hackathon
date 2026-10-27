@@ -8,6 +8,27 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-27 09:46 — Organisers' internal eval: 0.464 → 0.885; destination-only spaces, docks, three new solvers
+
+- **Did:** ran the benchmark agent on the organisers' internal evaluation set (7 buildings, 252 auto-scored
+  questions, shared after the event; kept in the session scratchpad, not committed) through a small adapter to
+  their answer shape and their own scorer. Fixed in the shared core (benchmark + Guide): spaces with
+  `through: false` are destinations only (`BuildingMap.route`, `route_models.endpoint_only`); entrances/docks are
+  places by name or id (`BuildingMap.entrance_spaces`, `route_query.resolve_place`, `agent/places.candidates`,
+  parser vocabulary); new solvers `nearest_item`, `lift_closed`, `add_door` (`core/solvers/changes.py`), parser
+  schema v3, Answer lines in `agent/answer.py`, listed in the Guide's `solve` tool. The Guide (UI) uses them
+  too: `find_nearest` for items ranks with `nearest_item` (profile step-free + closures), `propose_change` closing
+  a lift reports `lift_closed`'s rooms, and its prompt says so.
+- **Learned:** scores (parser Sonnet 5.5, 1 solver-agent run, cache off): 0.464 first; regex-only 0.044 (the
+  templates match none of the new wordings); `through` 0.673; entrances 0.764; three solvers 0.885 (nearest,
+  lift_closed, add_door 1.0; benchmark_route 0.94; forklift 0.72). `lift_closed` from `outside` gave 0 rooms on a
+  building with an upper-floor entrance — "inside the building" is the reading (and the organisers' generator's).
+  The decision cache breaks with several writer threads ("Extra data"); run evals with `LLM_CACHE=off` or 1 worker.
+  `tour` varies between runs (0.22 / 0.08): most tour questions go to the solver agent and get no answer.
+- **Changed docs:** [solver-plan.md](../docs/architecture/solver-plan.md) (rows + post-hackathon section),
+  [project-state.md](project-state.md).
+- **Next:** `tour` via the parser (stops + return to start) instead of the agent; thread-safe decision cache.
+
 ## 2026-10-26 23:43 — Stop hook for log.md; production in dub1, NDJSON not gzipped, access mode off
 
 - **Did:** added a Stop hook (`.claude/hooks/remind-log.py`, registered in `.claude/settings.json`): when tracked

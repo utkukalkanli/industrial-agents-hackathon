@@ -58,6 +58,12 @@ def explain(kind: str, params: dict, result: dict) -> tuple[str, str]:
         if not result["reachable"]:
             return result["reason"], "no step-free route" if kind == "route_step_free" else "no route"
         return "\n".join(result["steps"]), f"{result['optimal_length_m']:.2f} m"
+    if kind == "nearest_item":
+        return "\n".join(result["explanation"]), f"{result['asset_name']} ({result['asset_id']})"
+    if kind == "lift_closed":
+        return "\n".join(result["explanation"]), str(result["value"])
+    if kind == "add_door":
+        return "\n".join(result["explanation"]), f"{result['length_after_m']:.2f} m"
     if kind == "shared_walls_count":
         names = ", ".join(room(neighbour) for neighbour in result["rooms"]) or "none"
         return f"Rooms sharing at least 1 m of wall: {names}.", str(result["count"])
