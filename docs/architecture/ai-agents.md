@@ -99,9 +99,10 @@ events — so one call answers "what happens if…", and the model never counts 
 - **Profile once, remember always.** Infer constraints (wheelchair, trolley width, no lifts, quiet) from the
   conversation, confirm once in one line, store in the session/user profile → used by every later route
   without asking twice ([routing-profiles.md](../product/routing-profiles.md)).
-- **Echo understanding in one line** (from → to, constraints, closures), then the total, the floors crossed and the
-  first step only: the app shows the whole route and guides step by step
-  ([D-020](../../memory-bank/decisions.md#d-020)). With the app's "you are here" figure placed, "here" is the start
+- **Route replies: found it, press Start.** One sentence naming the place found (and a constraint or closure that
+  changed the route), then "Press Start or say 'start' to begin the guide." — no steps, distance or floors unless
+  asked: the app shows the whole route and guides step by step
+  ([D-020](../../memory-bank/decisions.md#d-020), revised 2026-10-28). With the app's "you are here" figure placed, "here" is the start
   and the Guide never asks where the user is. Not in this building → `search_nearby_buildings` /
   `route_to_building` for located buildings ([D-021](../../memory-bank/decisions.md#d-021), `agent/campus.py`).
 - **Directions a person can follow:** landmarks from assets/room names ("past the printers", "through the

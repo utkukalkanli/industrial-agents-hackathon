@@ -1004,7 +1004,7 @@ CAMPUS_TOOLS = [
      "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
     {"name": "route_to_building", "description": "Route from a place here to a place in a nearby building: inside "
      "here to the best exit, outside (straight line, rounded), inside there. The app shows the first part and a "
-     "Continue button; give the totals and the first steps.", "input_schema": {"type": "object", "properties": {
+     "Continue button; say which building and place you found, not the route.", "input_schema": {"type": "object", "properties": {
          "start": PLACE, "building": {"type": "string", "description": "nearby building id or name"},
          "destination": {"type": "string", "description": "place in that building"}},
          "required": ["start", "building", "destination"]}},

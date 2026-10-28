@@ -8,6 +8,19 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 15:00 — Route replies: "found it, press Start", no route summary (D-020 revised)
+
+- **Did:** Utku: the Guide summarised the whole route in chat ("go here, go there"); one line is enough — the place
+  was found, the route is ready, "Press Start or say 'start' to begin the guide." Rewrote the directions rule in
+  `INSTRUCTIONS` and `VOICE_STYLE` (`agent/guide.py`) and the `route_to_building` tool description
+  (`agent/tools.py`): no steps, distance or floors unless asked; name the place (which one, if several fit) and a
+  constraint or closure that changed the route.
+- **Learned:** live on OpenAI (proc-campus-train-000): "I found Kitchen 3.23. Press Start or say “start” to begin
+  the guide."; in Turkish: "En yakın tuvalet olan Toilet 3.21’i buldum. Rehberi başlatmak için Start’a bas veya
+  “start” de." The interaction eval's "directions" rubric (D-020 consequences) may score these lower still.
+- **Changed docs:** [decisions.md](decisions.md#d-020), [ai-agents.md](../docs/architecture/ai-agents.md).
+- **Next:** ship and deploy; the three deferred MINOR findings.
+
 ## 2026-10-28 14:00 — Production 500: `httpx` is a dev-only dependency; `openai_llm` uses `httpx2`
 
 - **Did:** Utku switched Vercel's production branch to `main` and force-pushed `main` to `dev` (`fabfdec`); the app

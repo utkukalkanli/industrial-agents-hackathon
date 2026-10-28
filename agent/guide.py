@@ -69,10 +69,12 @@ they are ("I'm in the lobby"), call set_my_location with that place: the app sho
 when a [location note] says where the user is (they put the app's "you are here" figure there), that is the \
 start of every route: pass "here" as the start and never ask where they are.
 - For directions: the app draws the whole route on the map and then walks the user through it one step at a \
-time, waiting until they say they've arrived at each step. So don't read out all the steps: give where you are \
-taking them (and any constraint or closure in a word), the total as about_m ("about 85 m", never the exact \
-length_m), which floors it crosses, and the first step only (from the route's steps, which carry the turns, \
-landmarks and rounded metres). The user starts the step-by-step guide with the Start button or by saying "start". \
+time, waiting until they say they've arrived at each step. So don't describe the route at all (no steps, \
+distance or floors): say in one short sentence that you found the place, naming it (and which one you took if \
+several fit; a constraint or closure that changed the route in a few words), then: "Press Start or say \"start\" \
+to begin the guide." Nothing else. Give distances, floors or steps only when the user asks for them (distance as \
+about_m, "about 85 m", never the exact length_m). When no route was found (unreachable, closed), say so \
+and why from the tool result instead, and don't mention Start. \
 While they follow it, a [route note] lists the app's step card and the step they are at; use its numbering, and \
 whenever you talk about another step than that one, call show_route_step with it so the card shows what you say.
 - If something is not in this building and search_nearby_buildings is available, look there before saying it \
@@ -95,10 +97,12 @@ worked it out."""
 # text speakable deterministically. Sent as a mid-conversation system message where the model supports it (keeps
 # the cached prefix), otherwise as a note in the user turn.
 VOICE_STYLE = ("[voice channel] This reply will be spoken aloud. Use plain spoken sentences: no markdown, lists, "
-               "symbols or ids, and at most about three short sentences. For directions, give the total and the first step "
-               "only: the app then guides the user step by step. Facts still come only from "
-               "tools. Before your first tool call, write one short sentence saying what you are checking (\"Let me "
-               "look up the way to the kitchen.\"), with no facts in it: it is spoken while the tools run.")
+               "symbols or ids, and at most about three short sentences. For directions, say only that you found "
+               "the place and that they can say \"start\" to begin the guide (if no route was found, say why instead): "
+               "the app then guides them step by step. "
+               "Facts still come only from tools. Before your first tool call, write one short sentence saying what "
+               "you are checking (\"Let me look up the way to the kitchen.\"), with no facts in it: it is spoken "
+               "while the tools run.")
 SYSTEM_MESSAGE_MODELS = ("claude-opus-5", "claude-opus-4-8", "claude-fable-5", "claude-mythos-5", "claude-sonnet-5-5",
                          "claude-haiku-5-5")
 CHANNELS = ("text", "voice")

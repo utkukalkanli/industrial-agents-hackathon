@@ -314,7 +314,9 @@ Template:
   the plan showed one floor), built by Claude
 - **Context:** Route answers listed every step in text and voice; the plan jumped to the start floor only.
 - **Decision:** The Guide's directions are one echo line, the total (about_m), the floors crossed and the first step
-  (INSTRUCTIONS + VOICE_STYLE in `agent/guide.py`). The app frames the whole route (all floors stacked when it
+  (INSTRUCTIONS + VOICE_STYLE in `agent/guide.py`). **Revised 2026-10-28 (Utku):** no route summary at all — one
+  sentence naming the place found (which one, if several fit; a constraint or closure that changed the route in a
+  few words), then "Press Start or say 'start' to begin the guide." Distances, floors and steps only when asked; no route found → say why, no Start. The app frames the whole route (all floors stacked when it
   crosses floors); Start (or "start"/"başla") begins the guide: each step is framed, read aloud, and the next one
   comes on "I'm there" / "geldim" / "next" (button, typed or spoken; hands-free voice keeps listening).
 - **Consequences:** The interaction eval's "directions" rubric judged full step lists; its scores may drop until the
