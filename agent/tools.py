@@ -417,8 +417,7 @@ class BuildingSession:
         route["nearest"] = self.space_summary(ranked[0][1])
         route["next_nearest"] = [{**self.space_summary(space_id), "about_m": about_m(length)}
                                  for length, space_id in ranked[1:3]]
-        self.highlight([ranked[0][1]])
-        return route
+        return route  # the route event already focuses the room; a highlight after it would replace the route
 
     def nearest_item(self, start: str, query: str, closures: list[str], closed: list[str] | None) -> dict:
         """find_nearest for an item: the shared nearest_item solver (core/solvers/changes.py, the benchmark's
@@ -449,8 +448,7 @@ class BuildingSession:
         route["nearest"] = self.space_summary(ranked[0][1])
         route["next_nearest"] = [{**self.space_summary(space_id), "about_m": about_m(length)}
                                  for length, space_id in ranked[1:3]]
-        self.highlight([ranked[0][1]])
-        return route
+        return route  # the route event already focuses the room; a highlight after it would replace the route
 
     def tool_tour(self, stops: list[str]) -> dict:
         tour = navigation.tour(

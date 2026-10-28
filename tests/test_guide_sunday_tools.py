@@ -26,6 +26,16 @@ def test_nearest_room_type_is_routed_to_and_drawn() -> None:
     assert drawn and drawn[-1]["space_path"] == route["space_path"]
 
 
+def test_nearest_leaves_the_route_as_the_last_answer() -> None:
+    # the app shows a route (and its Start card) only while it is the latest route/highlight event: a highlight
+    # after it replaced the route, so "the nearest toilet" drew nothing to start (frontend/app/src/dev/story.ts)
+    for query in ("meeting room", "whiteboard"):  # a room kind (find_nearest itself), an item (nearest_item)
+        guide = session()
+        route = guide.call("find_nearest", {"start": "Office 1.04", "query": query})
+        answers = [event["type"] for event in guide.events if event["type"] in ("route", "highlight")]
+        assert route["reachable"] and answers == ["route"], (query, answers)
+
+
 def test_nearest_item_holder_and_a_closure_for_this_question_only() -> None:
     guide = session()
     route = guide.call("find_nearest", {"start": "Main aisle H-B2", "query": "forklift charging station"})

@@ -8,6 +8,21 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 17:30 — "Nearest X" routes show their Start card; production URL floorwise-app.vercel.app
+
+- **Did:** Utku: sometimes the Guide says "press Start" and nothing appears. Live runs (OpenAI,
+  proc-campus-train-000): every `find_nearest` turn ("the kitchen", "print something", "the nearest toilet") emitted
+  `route` then `highlight`; the app keeps only the latest route/highlight answer (`applyEvents` in
+  `frontend/app/src/dev/story.ts`), so the highlight replaced the route and no Start card showed. Named destinations
+  (`find_route`) worked. Removed the highlight from `tool_find_nearest` and `nearest_item` (`agent/tools.py`): the
+  route event already focuses the destination room. New test
+  `test_nearest_leaves_the_route_as_the_last_answer` (red before: `['route', 'highlight']`). Utku: the Vercel
+  project is renamed `floorwise` and serves at **https://floorwise-app.vercel.app** (`floorwise.vercel.app` is
+  someone else's; the old `industrial-agents-hackathon-six.vercel.app` still works); GitHub homepage set to it.
+- **Learned:** the other silent case is a route request with no known start ("Take me to Lab 0.13." before any
+  location): the Guide asks where the user is — expected, no card.
+- **Next:** check a "nearest" request on production; the three deferred MINOR findings.
+
 ## 2026-10-28 16:50 — Floorwise logo top left; GitHub deployments and homepage
 
 - **Did:** Utku: put a logo with the app's name top left. New `frontend/app/src/ui/Logo.tsx`: a mark (a route

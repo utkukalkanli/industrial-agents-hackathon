@@ -80,7 +80,8 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   `ata-dev` + the two Claude GitHub workflows, now in `dev` too (`.github/workflows/claude.yml` = `@claude` on
   issues/PRs, `claude-code-review.yml` = review on every PR; both need the `CLAUDE_CODE_OAUTH_TOKEN` repo secret,
   not checked). `main` = `dev` since 2026-10-28 (Utku force-pushed); Vercel's production branch is `main` (Utku
-  switched it); `7-buildings-from-plans` can be deleted. Production imports only the non-dev dependencies — a
+  switched it); `7-buildings-from-plans` deleted. Production URL: https://floorwise-app.vercel.app (Vercel project
+  renamed `floorwise`, 2026-10-28; the old `industrial-agents-hackathon-six.vercel.app` alias still works). Production imports only the non-dev dependencies — a
   runtime module must not import a dev-group package (`httpx` broke production, [log](log.md)); the SDKs ship
   `httpx2`.
   Other branches: `ci-cd`, `remove-ship` (later; both reuse D-024/D-025 numbers → renumber ours on merge; /ship
