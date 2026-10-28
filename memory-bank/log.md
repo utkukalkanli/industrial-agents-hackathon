@@ -8,6 +8,32 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 00:40 — Claude GitHub workflows into `dev`; `main` to be set to `dev`
+
+- **Did:** `origin/main` turned out to be `ata-dev` + six PR merge commits + Utku's two Claude GitHub workflows, so
+  merging `dev` into it would have brought all of Atahan's code in. Utku: take the workflows, set `main` to `dev`,
+  production on `main`. Took `.github/workflows/claude-code-review.yml` and `claude.yml` from `origin/main`
+  unchanged.
+- **Learned:** both workflows use `secrets.CLAUDE_CODE_OAUTH_TOKEN` (subscription OAuth, not API credit); whether
+  the secret is set on the repo was not checked.
+- **Changed docs:** [project-state.md](project-state.md) (git section).
+- **Next:** push `dev`; Utku force-pushes `main` to `dev`; Vercel production branch → `main`.
+
+## 2026-10-28 00:20 — `dev` = our line, Atahan's dev kept as `ata-dev`; old branches deleted
+
+- **Did:** confirmed the push of `dae9d7c` auto-deployed to Vercel production (`dpl_HdCiu4d2JEfm4LjBWjq6wYd7hbD4`,
+  git source, production branch `7-buildings-from-plans`); Vercel has `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`
+  in Production, so production runs on OpenAI. Compared all branches: `origin/dev` had 9 Atahan commits of
+  2026-10-25 not in ours (~110 files); `origin/main`, `ci-cd`, `remove-ship` build on it. Utku: keep `/ship`, CI
+  later, take Atahan's code selectively. Pushed `ata-dev` = `f0ad356` (Atahan's dev), then Utku force-pushed `dev`
+  to `dae9d7c` (with lease on `f0ad356`). Deleted merged local branches (main, dev, 2–6) and the clean worktrees
+  of 2-builder-edit / 3-plan-import.
+- **Learned:** `ci-cd` / `remove-ship` use D-024 (CI/CD) and D-025 (retire /ship) for other decisions than ours.
+  The `.claude/worktrees/4-sunday-agent` worktree holds an untracked `.env.deploy` (left alone).
+- **Changed docs:** [project-state.md](project-state.md) (git section).
+- **Next:** switch Vercel's production branch to `dev`; pick parts of `ata-dev`. Remote `2-builder-edit` and
+  `4-sunday-agent` (0 commits not in `dev`) deleted on Utku's word.
+
 ## 2026-10-27 23:45 — cut-off tool calls dropped from history; keyless OpenAI client reports `auth`
 
 - **Did:** the reviewer's findings on commit 9de6162. `llm_client.kept_content(response)`: a reply cut off by the

@@ -73,7 +73,16 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   [dev-workflow.md](../docs/guides/dev-workflow.md).
 - Git: `origin` = https://github.com/utkukalkanli/industrial-agents-hackathon.git, the only remote (2026-10-27:
   fork detached on GitHub, `upstream` = atahankilc/industrial-agents-hackathon removed locally; first commit
-  `3300e6c` was pushed there). Working branch: `7-buildings-from-plans` (tracks `origin/7-buildings-from-plans`).
+  `3300e6c` was pushed there). **2026-10-28:** `dev` = this line of work (force-pushed to `dae9d7c`, same as
+  `7-buildings-from-plans`); Atahan's former `dev` (9 commits of 2026-10-25 not in ours: living building, iOS voice
+  fix, submission runbook, new icon, …) is kept as `ata-dev` (`f0ad356`) — Utku takes parts of it selectively, not
+  wholesale. `main` gets set to `dev` (Utku, 2026-10-28: `main` = production, `dev` = work); old `main` was
+  `ata-dev` + the two Claude GitHub workflows, now in `dev` too (`.github/workflows/claude.yml` = `@claude` on
+  issues/PRs, `claude-code-review.yml` = review on every PR; both need the `CLAUDE_CODE_OAUTH_TOKEN` repo secret,
+  not checked). Vercel's production branch is still `7-buildings-from-plans` → switch it to `main`, then delete
+  `7-buildings-from-plans`.
+  Other branches: `ci-cd`, `remove-ship` (later; both reuse D-024/D-025 numbers → renumber ours on merge; /ship
+  stays, Utku 2026-10-28). Old local branches deleted (all contained in `dev`).
 
 ## What works (verified 2026-10-24)
 
@@ -332,6 +341,11 @@ has no swing info. Next: Guide events on the plan
 ## Next priorities
 
 0. **2026-10-27:** OpenAI provider (D-024) — add `OPENAI_API_KEY` to Vercel and deploy; try the Creator on OpenAI.
+   Open MINOR review findings on dae9d7c (Utku: next commit; reviewer report in
+   `.claude/worklog/history/2026-10-27-2355-cut-off-tool-calls-keyless-openai.md`): the Creator spends its one
+   `NUDGE` on a reply cut off by the token limit (send a "cut off, retry the call" note instead); the Creator
+   cut-off test only checks the first step; `llm_client.kept_content`'s placeholder is a plain dict among SDK
+   blocks (use `BetaTextBlock`).
    In production: the "decide, don't ask" Guide on Claude fast mode (`dpl_A1pdhbuAy2J3ChuhhBzMx6voJ76x`, commit
    8d4433a). Optionally delete the two deployments whose source holds the organisers'
    zips (`dpl_CxMW5axbcPZr53mdTBu8fLGpQK8v` and its preview).
