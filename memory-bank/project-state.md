@@ -344,11 +344,7 @@ has no swing info. Next: Guide events on the plan
 ## Next priorities
 
 0. **2026-10-27:** OpenAI provider (D-024) — add `OPENAI_API_KEY` to Vercel and deploy; try the Creator on OpenAI.
-   Open MINOR review findings on dae9d7c (Utku: next commit; reviewer report in
-   `.claude/worklog/history/2026-10-27-2355-cut-off-tool-calls-keyless-openai.md`): the Creator spends its one
-   `NUDGE` on a reply cut off by the token limit (send a "cut off, retry the call" note instead); the Creator
-   cut-off test only checks the first step; `llm_client.kept_content`'s placeholder is a plain dict among SDK
-   blocks (use `BetaTextBlock`).
+   The three MINOR review findings on dae9d7c are fixed (2026-10-28, [log](log.md)).
    In production: the "decide, don't ask" Guide on Claude fast mode (`dpl_A1pdhbuAy2J3ChuhhBzMx6voJ76x`, commit
    8d4433a). Optionally delete the two deployments whose source holds the organisers'
    zips (`dpl_CxMW5axbcPZr53mdTBu8fLGpQK8v` and its preview).

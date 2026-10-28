@@ -27,6 +27,8 @@ KEEP_IMAGES = 8  # how many of the newest stay when that happens
 DROPPED = {"type": "text", "text": "[image dropped to save space — call the tool again to see it]"}
 NUDGE = ("[not from the user] You stopped without ending the import. Call finish (or no_plan if no file shows a floor "
          "plan).")
+CUT = ("[not from the user] Your last reply was cut off by the token limit, so its tool call was not run. Make the "
+       "call again, shorter if it was long.")
 
 INSTRUCTIONS = """You are the Creator: you turn uploaded files (PDF pages, photos of plans on a wall, scans) into a \
 building model, with no help from the user. Code does all geometry; you read the drawings and decide.
@@ -140,6 +142,9 @@ class Creator:
             if response.stop_reason == "pause_turn":
                 continue
             uses = [block for block in content if getattr(block, "type", None) == "tool_use"]
+            if not uses and response.stop_reason == "max_tokens":  # cut off: not a stop, so the nudge stays unused
+                self.messages.append({"role": "user", "content": CUT})
+                continue
             if not uses:
                 if nudged:
                     return CreatorResult("failed", reason="the Creator stopped without finishing", usage=self.usage)

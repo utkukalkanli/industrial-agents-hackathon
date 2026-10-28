@@ -8,6 +8,16 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 18:00 — The three deferred MINOR findings on dae9d7c fixed
+
+- **Did:** (1) the Creator no longer spends its one `NUDGE` on a reply cut off by the token limit: such a reply gets
+  `CUT` ("cut off, its tool call was not run, make the call again") and the nudge stays for a real stop
+  (`agent/creator.py`); (2) the Creator cut-off test now checks the import finishes with the real name, the cut
+  call never runs, and the retry carries `CUT`; a new test checks a cut-off reply followed by a stop still gets the
+  nudge (red before: the cut used it up → "failed"); (3) `llm_client.kept_content`'s placeholder is a
+  `BetaTextBlock` like the blocks around it. The 00:20 entry's "production branch → `dev`" is marked superseded.
+- **Next:** Atahan's `ata-dev`, selectively; `ci-cd` / `remove-ship` (renumber D-024/D-025 on merge).
+
 ## 2026-10-28 17:30 — "Nearest X" routes show their Start card; production URL floorwise-app.vercel.app
 
 - **Did:** Utku: sometimes the Guide says "press Start" and nothing appears. Live runs (OpenAI,
@@ -89,7 +99,7 @@ related: [project-state.md, decisions.md, open-questions.md]
 - **Learned:** `ci-cd` / `remove-ship` use D-024 (CI/CD) and D-025 (retire /ship) for other decisions than ours.
   The `.claude/worktrees/4-sunday-agent` worktree holds an untracked `.env.deploy` (left alone).
 - **Changed docs:** [project-state.md](project-state.md) (git section).
-- **Next:** switch Vercel's production branch to `dev`; pick parts of `ata-dev`. Remote `2-builder-edit` and
+- **Next:** switch Vercel's production branch to `dev` (superseded 00:40: production on `main`); pick parts of `ata-dev`. Remote `2-builder-edit` and
   `4-sunday-agent` (0 commits not in `dev`) deleted on Utku's word.
 
 ## 2026-10-27 23:45 — cut-off tool calls dropped from history; keyless OpenAI client reports `auth`

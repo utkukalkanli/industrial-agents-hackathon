@@ -9,6 +9,7 @@ client (not the offline or scripted test clients)."""
 import os
 
 import anthropic
+from anthropic.types.beta import BetaTextBlock
 
 PROVIDERS = ("openai", "anthropic")
 
@@ -46,7 +47,7 @@ def kept_content(response: object) -> list:
     if response.stop_reason != "max_tokens":
         return list(response.content)
     kept = [block for block in response.content if block.type != "tool_use"]
-    return kept or [{"type": "text", "text": "(cut off by the token limit)"}]
+    return kept or [BetaTextBlock(type="text", text="(cut off by the token limit)")]
 
 
 def live(client: object) -> bool:

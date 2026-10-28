@@ -227,7 +227,8 @@ def test_kept_content_drops_tool_calls_of_a_cut_off_reply():
     cut = message(text_block("Let me look."), tool_use("locate", {"query": "x"}), stop_reason="max_tokens")
     assert [block.type for block in llm_client.kept_content(cut)] == ["text"]
     only_call = message(tool_use("locate", {"query": "x"}), stop_reason="max_tokens")
-    assert llm_client.kept_content(only_call) == [{"type": "text", "text": "(cut off by the token limit)"}]
+    placeholder = llm_client.kept_content(only_call)
+    assert [(block.type, block.text) for block in placeholder] == [("text", "(cut off by the token limit)")]
 
 
 def test_without_an_openai_key_the_client_builds_and_requests_fail_as_auth(monkeypatch):

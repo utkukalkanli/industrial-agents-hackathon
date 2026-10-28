@@ -2,7 +2,7 @@
 
 import json
 
-from agent.creator import Creator
+from agent.creator import CUT, NUDGE, Creator
 from agent.creator_tools import ImportSession
 from agent.offline_llm import message, text_block, tool_use
 from core.plan_import.ingest import load_sources
@@ -39,6 +39,13 @@ SCRIPT = [
     message(tool_use("label_cells", {"level": 0, "cells": FIXTURE_LABELS, "entrances": [3]})),
     message(text_block("Building it."), tool_use("finish", {"name": "Fixture house"})),
 ]
+
+
+def run_with(client):
+    steps = []
+    creator = Creator(plan_session(), client=client)
+    creator.on_step = steps.append
+    return creator, creator.run(), steps
 
 
 def run(session, script):
@@ -137,9 +144,18 @@ def test_a_cancelled_import_stops_before_the_next_request():
 def test_a_tool_call_cut_off_by_the_token_limit_is_not_run():
     cut = message(tool_use("finish", {"name": "Half"}), stop_reason="max_tokens")
     client = ScriptedClient([cut, *SCRIPT])
-    steps: list[dict] = []
-    creator = Creator(plan_session(), client=client)
-    creator.on_step = steps.append
-    creator.run()
-    assert {"kind": "tool", "name": "finish"} != steps[0]
-    assert not [block for block in client.requests[1][1]["content"] if block.get("type") == "tool_use"]
+    _, result, steps = run_with(client)
+    assert result.status == "done" and result.building["building"]["name"] == "Fixture house"
+    assert {"kind": "tool", "name": "finish"} not in steps[:1] and steps.count({"kind": "tool", "name": "finish"}) == 1
+    retry = client.requests[1]
+    assert not [block for block in retry[-2]["content"] if block.get("type") == "tool_use"]
+    assert retry[-1] == {"role": "user", "content": CUT}
+
+
+def test_a_cut_off_reply_does_not_use_up_the_nudge():
+    cut = message(tool_use("finish", {"name": "Half"}), stop_reason="max_tokens")
+    stopped = message(text_block("Done looking."))  # no tool call: this one gets the nudge
+    client = ScriptedClient([cut, stopped, *SCRIPT])
+    _, result, _ = run_with(client)
+    assert result.status == "done"
+    assert [turn["content"] for turn in client.requests[2] if turn["content"] in (CUT, NUDGE)] == [CUT, NUDGE]
