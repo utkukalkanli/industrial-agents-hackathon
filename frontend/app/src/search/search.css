@@ -10,6 +10,7 @@
 }
 .bs-map:hover, .bs-map:focus-visible { background: var(--fill); color: var(--ink); outline: none; }
 
+.bs-head .logo { margin-bottom: 22px; }
 .bs-head h1 { margin: 0; font-size: 28px; font-weight: 500; letter-spacing: -0.02em; }
 .bs-head p { margin: 6px 0 0; color: var(--ink-3); font-size: 13px; }
 

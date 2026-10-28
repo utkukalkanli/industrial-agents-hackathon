@@ -85,6 +85,13 @@ button, select, textarea { font: inherit; color: inherit; }
   padding: 20px 24px;
 }
 
+/* The Floorwise logo (src/ui/Logo.tsx), top left of the map panel and the list page */
+.logo { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); }
+.logo-mark { width: 24px; height: 24px; flex: none; }
+.logo-grid circle { fill: currentColor; opacity: 0.22; }
+.logo-word { font-size: 17px; font-weight: 650; letter-spacing: -0.035em; line-height: 1; }
+.logo-word span { font-weight: 400; color: var(--ink-2); }
+
 .brand { display: flex; gap: 12px; align-items: flex-start; }
 .brand .mark {
   width: 10px;

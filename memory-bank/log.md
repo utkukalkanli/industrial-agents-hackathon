@@ -8,6 +8,19 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 16:50 — Floorwise logo top left; GitHub deployments and homepage
+
+- **Did:** Utku: put a logo with the app's name top left. New `frontend/app/src/ui/Logo.tsx`: a mark (a route
+  climbing a 3×3 grid of rooms, start dot → end dot, `currentColor`) + the wordmark "Floor**wise**" ("wise" lighter);
+  on the map panel above "Buildings" and on the list page above "Find a building"; `public/favicon.svg` redrawn as
+  the same mark (black / white with the system theme). GitHub: the Vercel project had
+  `gitProviderOptions.createDeployments: disabled`, so the repo's Deployments showed only two failed `preview` runs
+  from the `ci-cd` / `remove-ship` deploy workflow (2026-10-25) — enabled it (Vercel API PATCH), deleted the two
+  failed records (Utku: yes), set the repo homepage to https://industrial-agents-hackathon-six.vercel.app.
+- **Learned:** headless Chrome needs `--enable-unsafe-swiftshader --use-angle=swiftshader` to render the map page
+  (MapLibre WebGL); without it the screenshot is black.
+- **Next:** check the GitHub deployment record after the next production deploy; the three deferred MINOR findings.
+
 ## 2026-10-28 15:00 — Route replies: "found it, press Start", no route summary (D-020 revised)
 
 - **Did:** Utku: the Guide summarised the whole route in chat ("go here, go there"); one line is enough — the place

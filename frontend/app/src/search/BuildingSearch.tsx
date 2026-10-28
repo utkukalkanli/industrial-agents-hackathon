@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useAccess } from '../access/auth'
 import { api, type Building } from '../api'
+import { Logo } from '../ui/Logo.tsx'
 import './search.css'
 
 const KINDS = [
@@ -90,6 +91,7 @@ export function BuildingSearch({ onOpen, onMap, onImport }: { onOpen: (id: strin
           {(!mode || admin) && <button className="bs-map" onClick={onImport}>New from floor plans →</button>}
         </div>
         <header className="bs-head">
+          <Logo />
           <h1>Find a building</h1>
           <p>{buildings ? `${buildings.length} buildings` : error ? 'Could not load buildings' : 'Loading…'}</p>
         </header>

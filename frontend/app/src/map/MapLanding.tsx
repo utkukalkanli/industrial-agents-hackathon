@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAccess } from '../access/auth'
 import { api, type Building, type ImportPlace } from '../api'
 import { useTheme } from '../theme'
+import { Logo } from '../ui/Logo.tsx'
 import { outerRing, ringContains, TILE_BUILDINGS } from './geo'
 import { applyBlocks, attachMap, FLAT_FOV, osmHeights, setTheme, toLngLat, type Origin } from './bridge'
 import './map.css'
@@ -624,6 +625,7 @@ export function MapLanding({ buildings, error, focus, onOpen, onList, onImport, 
       )}
       <aside className="ml-panel">
         <header>
+          <Logo />
           <h1>Buildings</h1>
           <p>{buildings ? `${located.length} on the map` : error ? 'Could not load buildings' : 'Loading…'}</p>
         </header>

@@ -12,6 +12,7 @@
   overflow: hidden;
 }
 .ml-panel header { padding: 18px 18px 10px; }
+.ml-panel .logo { margin-bottom: 18px; }
 .ml-panel h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
 .ml-panel header p { margin: 2px 0 0; font-size: 13px; color: var(--ink-3); }
 
