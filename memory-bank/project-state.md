@@ -79,8 +79,10 @@ Planned phases (proposal, see [overview.md](../docs/architecture/overview.md)):
   wholesale. `main` gets set to `dev` (Utku, 2026-10-28: `main` = production, `dev` = work); old `main` was
   `ata-dev` + the two Claude GitHub workflows, now in `dev` too (`.github/workflows/claude.yml` = `@claude` on
   issues/PRs, `claude-code-review.yml` = review on every PR; both need the `CLAUDE_CODE_OAUTH_TOKEN` repo secret,
-  not checked). Vercel's production branch is still `7-buildings-from-plans` → switch it to `main`, then delete
-  `7-buildings-from-plans`.
+  not checked). `main` = `dev` since 2026-10-28 (Utku force-pushed); Vercel's production branch is `main` (Utku
+  switched it); `7-buildings-from-plans` can be deleted. Production imports only the non-dev dependencies — a
+  runtime module must not import a dev-group package (`httpx` broke production, [log](log.md)); the SDKs ship
+  `httpx2`.
   Other branches: `ci-cd`, `remove-ship` (later; both reuse D-024/D-025 numbers → renumber ours on merge; /ship
   stays, Utku 2026-10-28). Old local branches deleted (all contained in `dev`).
 

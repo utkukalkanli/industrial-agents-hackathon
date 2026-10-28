@@ -115,11 +115,11 @@ def test_without_a_key_it_says_so(monkeypatch):
 
 def test_an_api_error_ends_the_import_with_its_message():
     import anthropic
-    import httpx
+    import httpx2
 
     class Broke(ScriptedClient):
         def create(self, **request):
-            response = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+            response = httpx2.Response(400, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
             raise anthropic.BadRequestError("Your credit balance is too low", response=response, body=None)
 
     result = Creator(plan_session(), client=Broke([])).run()

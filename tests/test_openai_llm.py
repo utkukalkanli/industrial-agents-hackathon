@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 import anthropic
-import httpx
+import httpx2
 import openai
 import pytest
 from anthropic.types.beta import BetaTextBlock, BetaToolUseBlock
@@ -124,7 +124,7 @@ def test_response_becomes_an_anthropic_message_with_tool_use_and_usage():
 
 
 def status_error(status, message):
-    response = httpx.Response(status, request=httpx.Request("POST", "https://api.openai.com/v1/responses"))
+    response = httpx2.Response(status, request=httpx2.Request("POST", "https://api.openai.com/v1/responses"))
     return openai.APIStatusError(message, response=response, body=None)
 
 
@@ -135,7 +135,7 @@ def test_openai_errors_become_the_anthropic_classes_the_backend_handles():
     assert code_of(quota) == "credits"
     assert code_of(anthropic_error(status_error(401, "bad key"))) == "auth"
     assert code_of(anthropic_error(status_error(503, "down"))) == "unavailable"
-    timeout = anthropic_error(openai.APITimeoutError(request=httpx.Request("POST", "https://x")))
+    timeout = anthropic_error(openai.APITimeoutError(request=httpx2.Request("POST", "https://x")))
     assert isinstance(timeout, anthropic.APIConnectionError) and code_of(timeout) == "offline"
     client, _ = client_with(status_error(429, "Rate limit reached"))
     with pytest.raises(anthropic.RateLimitError):

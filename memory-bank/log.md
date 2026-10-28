@@ -8,6 +8,23 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-28 14:00 — Production 500: `httpx` is a dev-only dependency; `openai_llm` uses `httpx2`
+
+- **Did:** Utku switched Vercel's production branch to `main` and force-pushed `main` to `dev` (`fabfdec`); the app
+  then answered "Could not open this building. Error: 500 /sessions". Production logs (`vercel logs -e production`):
+  `ModuleNotFoundError: No module named 'httpx'` from `agent/openai_llm.py` line 31 — on the old
+  `7-buildings-from-plans` deployment too, so production broke with the OpenAI provider (9de6162), not with the
+  branch switch. `httpx` is only in the `dev` dependency group; the `anthropic` and `openai` SDKs depend on `httpx2`
+  (their `_exceptions.py` import it). `agent/openai_llm.py`, `tests/test_openai_llm.py` and `tests/test_creator.py`
+  now use `httpx2`, like the other tests already did; `httpx2` is declared in `[project] dependencies`, and
+  `tests/test_runtime_imports.py` fails when shipped code (`agent/`, `backend/`, `core/`, `benchmark/`) imports a
+  dev-only package.
+- **Learned:** the local `.venv` has the dev group, so a runtime import of a dev-only package passes every test.
+  Reproduced with a separate no-dev venv (`UV_PROJECT_ENVIRONMENT=<dir> uv sync --no-dev`): the old module fails
+  with the production error, the new one imports with `backend.app`.
+- **Next:** push `dev` and fast-forward `main` → production redeploys; check `/api/buildings` and a session.
+  Then delete `7-buildings-from-plans`.
+
 ## 2026-10-28 00:40 — Claude GitHub workflows into `dev`; `main` to be set to `dev`
 
 - **Did:** `origin/main` turned out to be `ata-dev` + six PR merge commits + Utku's two Claude GitHub workflows, so

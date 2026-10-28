@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 
 import anthropic
-import httpx
+import httpx2
 import openai
 from anthropic.types.beta import BetaMessage, BetaTextBlock, BetaToolUseBlock, BetaUsage
 
@@ -39,7 +39,7 @@ DROPPED = {"cache_control", "betas", "fallbacks", "speed", "thinking", "metadata
 STATUS_ERRORS = {400: anthropic.BadRequestError, 401: anthropic.AuthenticationError,
                  403: anthropic.PermissionDeniedError, 404: anthropic.NotFoundError, 409: anthropic.ConflictError,
                  422: anthropic.UnprocessableEntityError, 429: anthropic.RateLimitError}
-REQUEST = httpx.Request("POST", "https://api.openai.com/v1/responses")  # for errors raised without one
+REQUEST = httpx2.Request("POST", "https://api.openai.com/v1/responses")  # for errors raised without one
 _ids = itertools.count(1)
 
 
@@ -257,7 +257,7 @@ class MissingKey:
 
     def create(self, **request) -> object:
         raise openai.AuthenticationError(f"no OpenAI API key: {self.reason}", body=None,
-                                         response=httpx.Response(401, request=REQUEST))
+                                         response=httpx2.Response(401, request=REQUEST))
 
 
 class OpenAIClient:
