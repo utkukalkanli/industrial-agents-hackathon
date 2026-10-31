@@ -70,6 +70,9 @@ Back to [CLAUDE.md](../CLAUDE.md) · Live state lives in [memory-bank/](../memor
 - [guides/dev-workflow.md](guides/dev-workflow.md) — verified commits: worklog claims → verifier agent → fixer loop → hook-enforced stamp.
 - [guides/glossary.md](guides/glossary.md) — shared vocabulary.
 
+### Submission (frozen deliverables, not maintained)
+- [submission/technical-explanation.pdf](submission/technical-explanation.pdf) ([HTML](submission/technical-explanation.html)) — the technical explanation handed in at the hackathon: architecture, tech stack, core, agents, benchmark numbers. A dated snapshot; the docs above win where they differ.
+
 ## Suggested reading order for a new agent
 
 1. [brief](challenge/brief.md) → 2. [scoring](challenge/scoring.md) → 3. [data-format](kit/data-format.md) →

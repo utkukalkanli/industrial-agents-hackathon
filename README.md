@@ -138,7 +138,7 @@ The benchmark:
 uv run --env-file .env python -m benchmark.evaluate data/dev --agent agent.answer:answer
 
 # One command: building (or split) directory + questions file → answers file
-uv run python -m agent.run_benchmark_v1 data/test data/test/questions.csv SUBMISSION/answers.json
+uv run python -m agent.run_benchmark_v1 data/test data/test/questions.csv /tmp/answers.json
 ```
 
 `PARSER_MODE=regex` runs it fully offline (template parser only). All commands: [docs/guides/commands.md](docs/guides/commands.md).
