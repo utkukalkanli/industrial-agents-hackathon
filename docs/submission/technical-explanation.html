@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Talk to Your Building — Technical Explanation</title>
+<style>
+  @page { size: A4; margin: 16mm 17mm 16mm 17mm; }
+  :root { --accent: #f07d22; --ink: #1d1d1f; --muted: #5b5b60; --line: #dedee2; --soft: #f6f6f8; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); font-size: 9.6pt;
+         line-height: 1.42; margin: 0; background: #fff; }
+  .kicker { color: var(--accent); font-weight: 700; font-size: 8.4pt; letter-spacing: .06em; text-transform: uppercase; }
+  h1 { font-size: 21pt; line-height: 1.15; margin: 4px 0 6px; }
+  .lede { color: var(--muted); font-size: 10.4pt; margin: 0 0 10px; }
+  h2 { color: var(--accent); font-size: 13pt; margin: 16px 0 6px; break-after: avoid; }
+  h3 { font-size: 10.2pt; margin: 10px 0 4px; break-after: avoid; }
+  p { margin: 0 0 6px; }
+  ul { margin: 0 0 6px; padding-left: 16px; } li { margin: 0 0 2px; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.4pt; background: var(--soft);
+         padding: 0 3px; border-radius: 3px; }
+  pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.2pt; background: var(--soft);
+        border: 1px solid var(--line); border-radius: 5px; padding: 7px 9px; margin: 4px 0 8px; white-space: pre-wrap; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 8.9pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 4px 6px; border: 1px solid var(--line); }
+  th { background: #efeff2; font-weight: 600; }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 4px; }
+  .stat { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .stat b { display: block; font-size: 15pt; color: var(--ink); }
+  .stat span { color: var(--muted); font-size: 8pt; }
+  .principle { border-left: 3px solid var(--accent); background: #fff6ee; padding: 6px 10px; margin: 6px 0 8px; }
+  figure { margin: 6px 0 4px; break-inside: avoid; }
+  figcaption { color: var(--muted); font-size: 8pt; margin-top: 2px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .foot { color: var(--muted); font-size: 7.8pt; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 12px; }
+  .break { break-before: page; }
+</style>
+</head>
+<body>
+
+<div class="kicker">Industrial Agents Hackathon 2026 · Track 01 · Technical explanation</div>
+<h1>Talk to Your Building: architecture and tech stack</h1>
+<p class="lede">An app you talk to — by text or voice — that finds things, plans routes, reacts to closures and edits
+the building. A deterministic geometry/graph core computes every answer; Claude handles the language.</p>
+
+<div class="principle"><b>One rule shapes the whole system: the LLM for language, code for facts.</b>
+No room, distance, count or route reaches the user unless it came out of a deterministic tool. The rule is
+enforced in code (a grounding check after every agent turn), not only in the prompt.</div>
+
+<div class="stats">
+  <div class="stat"><b>138 / 138</b><span>dev benchmark questions correct (official scorer)</span></div>
+  <div class="stat"><b>1,338 / 1,338</b><span>train + dev routes reproduced exactly (length, path)</span></div>
+  <div class="stat"><b>145 / 145</b><span>test questions answered, 0 errors (<code>SUBMISSION/answers.json</code>)</span></div>
+  <div class="stat"><b>280</b><span>kit buildings that load, route and render in the app</span></div>
+</div>
+
+<h2>Architecture</h2>
+<figure>
+<svg viewBox="0 0 700 300" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue, Arial, sans-serif" font-size="11">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b5b60"/></marker></defs>
+  <!-- browser -->
+  <rect x="10" y="10" width="680" height="58" rx="8" fill="#f6f6f8" stroke="#c9c9cf"/>
+  <text x="22" y="30" font-weight="700">React app (Vite · React 19 · TypeScript) — hosted on Vercel</text>
+  <text x="22" y="48" fill="#5b5b60">Map of the site (MapLibre) → building: 3D stacked floors (three.js / react-three-fiber) + 2D plan · animated route,</text>
+  <text x="22" y="62" fill="#5b5b60">step guide · Guide card + voice orb · Edit mode (plan editor + Builder chat) · "you are here" figure</text>
+  <!-- arrows -->
+  <line x1="200" y1="70" x2="200" y2="100" stroke="#5b5b60" marker-end="url(#a)" marker-start="url(#a)"/>
+  <text x="208" y="90" fill="#5b5b60">REST + SSE (chat stream, events, plan)</text>
+  <line x1="600" y1="70" x2="600" y2="100" stroke="#5b5b60" marker-end="url(#a)" marker-start="url(#a)"/>
+  <text x="470" y="90" fill="#5b5b60">speech in / out</text>
+  <!-- backend -->
+  <rect x="10" y="102" width="440" height="110" rx="8" fill="#fff" stroke="#f07d22" stroke-width="1.5"/>
+  <text x="22" y="121" font-weight="700">FastAPI backend (Python 3.12, Vercel Python runtime)</text>
+  <rect x="22" y="130" width="200" height="72" rx="6" fill="#fff6ee" stroke="#f3b27a"/>
+  <text x="32" y="147" font-weight="700">Agents (Claude)</text>
+  <text x="32" y="163" fill="#5b5b60">Guide — tool-use loop, Opus 5.5</text>
+  <text x="32" y="177" fill="#5b5b60">Builder — edits by conversation</text>
+  <text x="32" y="191" fill="#5b5b60">Voice rewriter — Haiku 5.5</text>
+  <rect x="236" y="130" width="202" height="72" rx="6" fill="#f6f6f8" stroke="#c9c9cf"/>
+  <text x="246" y="147" font-weight="700">Deterministic core (core/)</text>
+  <text x="246" y="163" fill="#5b5b60">route graph + Dijkstra (networkx)</text>
+  <text x="246" y="177" fill="#5b5b60">geometry (shapely) · 9 solvers</text>
+  <text x="246" y="191" fill="#5b5b60">edits · validation · directions</text>
+  <line x1="222" y1="166" x2="236" y2="166" stroke="#5b5b60" marker-end="url(#a)"/>
+  <!-- voice -->
+  <rect x="470" y="102" width="220" height="110" rx="8" fill="#fff" stroke="#c9c9cf"/>
+  <text x="482" y="121" font-weight="700">ElevenLabs</text>
+  <text x="482" y="139" fill="#5b5b60">Scribe Realtime — speech to text,</text>
+  <text x="482" y="153" fill="#5b5b60">biased with the building's room names</text>
+  <text x="482" y="171" fill="#5b5b60">Flash v2.5 — text to speech,</text>
+  <text x="482" y="185" fill="#5b5b60">streamed sentence by sentence</text>
+  <text x="482" y="203" fill="#5b5b60">(browser speech as fallback)</text>
+  <!-- supabase -->
+  <line x1="230" y1="214" x2="230" y2="238" stroke="#5b5b60" marker-end="url(#a)" marker-start="url(#a)"/>
+  <rect x="10" y="240" width="440" height="50" rx="8" fill="#f6f6f8" stroke="#c9c9cf"/>
+  <text x="22" y="259" font-weight="700">Supabase — Postgres + Auth</text>
+  <text x="22" y="277" fill="#5b5b60">conversations · Builder drafts and saved buildings (version-checked) · accounts</text>
+  <!-- benchmark -->
+  <rect x="470" y="240" width="220" height="50" rx="8" fill="#fff" stroke="#f07d22" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="482" y="259" font-weight="700">Benchmark CLI (offline)</text>
+  <text x="482" y="277" fill="#5b5b60">same core · no server, no UI</text>
+  <line x1="438" y1="200" x2="520" y2="238" stroke="#5b5b60" stroke-dasharray="3 3" marker-end="url(#a)"/>
+</svg>
+<figcaption>One Python core serves three consumers: the conversational Guide, the Builder and the one-command benchmark.</figcaption>
+</figure>
+
+<h3>1 · Deterministic core (<code>core/</code>)</h3>
+<ul>
+  <li><b>Route graph.</b> Nodes are room anchors and doors; edges are walks inside a room (a visibility graph that
+  keeps 15 cm off the walls and goes round corners), stairs (2 m per metre climbed) and lifts (15 m per ride +
+  1 m per metre climbed). Dijkstra over a <code>networkx</code> multigraph. This is the organisers' kit 1.1.0
+  route model, ported unchanged so our lengths and paths match theirs to the centimetre.</li>
+  <li><b>Constraints as graph filters.</b> Step-free drops stairs and stepped doors; closures remove a door, lift,
+  stair or room; a minimum door width (trolley, wheelchair, forklift) drops narrower openings. Routing profiles
+  change these parameters, never the algorithm.</li>
+  <li><b>Solvers</b> for every benchmark kind (largest room, floor area, shared walls, stacked rooms, 3D straight
+  line, errands, "what if this door closes", wide deliveries, step-free reachability) plus locate, count, route,
+  closures and multi-stop tours.</li>
+  <li><b>Directions</b> a person can follow: turns at the door you came through, a landmark item near each door
+  ("past the printers"), rounded metres, one line per lift or stair ride.</li>
+  <li><b>Edits and validation</b> (<code>core/edits.py</code>, <code>core/validate.py</code>): add/move/delete rooms,
+  doors and equipment, move a shared wall without breaking the neighbour, then check the result.</li>
+</ul>
+
+<h3>2 · Agents (<code>agent/</code>) — Claude through the Anthropic API</h3>
+<table>
+  <tr><th>Agent</th><th>What it does</th><th>Guardrails</th></tr>
+  <tr><td>Building Guide</td><td>Conversation in text or voice: find, route, react to closures, change the building.
+  Manual tool-use loop over 16 tools (<code>search</code>, <code>find_route</code>, <code>tour</code>,
+  <code>compare_routes</code>, <code>set_profile</code>, <code>propose_change</code>, <code>show_on_map</code>, …).
+  Claude Opus 5.5; system prompt + building overview prompt-cached.</td>
+  <td>Grounding check: every number or id in a reply must appear in a tool result, else one repair round.
+  A change proposed in a turn cannot be applied in that same turn — the user sees the effect and confirms.</td></tr>
+  <tr><td>Builder</td><td>Edits a building by conversation ("make the kitchen 2 m wider", "add a door between …"):
+  inspects the plan with read-only tools, proposes an edit with its predicted effect and new problems.</td>
+  <td>Proposals are dry runs; only the user's next "yes" or the Apply button commits; stale proposals are refused (409).</td></tr>
+  <tr><td>Benchmark pipeline</td><td>Question text → template parser (LLM fallback only for unknown wording) → solver →
+  reply with a deterministic <code>Answer:</code> line.</td>
+  <td>The LLM only maps wording to a kind and ids; every number comes from a solver.</td></tr>
+</table>
+
+<h2>How it answers the four questions</h2>
+<table>
+  <tr><th>Brief</th><th>Example</th><th>What happens</th></tr>
+  <tr><td>FIND</td><td>"Where is the 3D printer?"</td><td><code>search</code> resolves names, equipment types and typos;
+  several matches → one short question naming what tells them apart (floor, size, neighbour); the room and item
+  are tinted, labelled and framed on the plan.</td></tr>
+  <tr><td>ROUTE</td><td>"From the lobby to the CNC mill on floor 2 without stairs"</td><td>The profile becomes a
+  graph filter; the Guide echoes its understanding in one line (from → to, constraints), gives the total and the
+  first step; the app draws the whole route, then guides step by step with "I'm there".</td></tr>
+  <tr><td>EDIT</td><td>"Add a door between rooms 2.03 and 2.04"</td><td><code>propose_change</code> → effect card
+  ("I understood: …; these routes change") → confirm → applied and validated; Edit mode shows the change on the plan.</td></tr>
+  <tr><td>REACT</td><td>"The east lift is closed. What changes?"</td><td><code>compare_routes</code> computes rooms that lost
+  step-free access (by floor) and routes that got longer, with before/after metres; affected rooms are highlighted.</td></tr>
+</table>
+
+<h3>Built for the people in the brief</h3>
+<table>
+  <tr><th>Who</th><th>What they get</th></tr>
+  <tr><td>First day at work</td><td>Needs no room names: "where do I get coffee?" is resolved through room and
+  equipment types; the answer is drawn on the plan and the app guides step by step from the "you are here" figure.</td></tr>
+  <tr><td>Wheelchair user</td><td>Says it once: the profile (step-free, minimum door width) applies to every later
+  route without asking twice; closures show which rooms lost step-free access.</td></tr>
+  <tr><td>Service technician</td><td>Hands-free voice with barge-in; directions by landmarks ("past the press"),
+  not room ids.</td></tr>
+  <tr><td>Facility manager</td><td>Closes a lift, adds a door or moves a machine by conversation or in Edit mode; sees
+  the effect before confirming.</td></tr>
+  <tr><td>Forklift driver / logistics</td><td>Forklift profile (openings ≥ 3 m, no stairs, no pedestrian walkways);
+  blocked aisles as closures; "where is the steel drum" through the equipment search; moving objects report
+  their new place.</td></tr>
+</table>
+
+<h3>Levels covered</h3>
+<ul>
+  <li><b>1 Locate / 2 Route:</b> find, step-free routes, closures, minimum door widths, multi-stop tours.</li>
+  <li><b>3 Scale:</b> multi-floor routing over stairs and lifts in all 280 kit buildings (up to 10 floors); places in
+  nearby located buildings are searchable and routed to with an outdoor leg.</li>
+  <li><b>4 Build:</b> Edit mode — draw and drag rooms, walls, doors and equipment, or ask the Builder in plain
+  language; drafts validated, undoable, saved and immediately routable by the Guide.</li>
+  <li><b>5 Extend:</b> voice in and out with barge-in; isometric stacked floors over a city map; accessibility
+  profiles (step-free, wide doors, quiet routes); industrial logistics (forklift routing); moving objects (devices
+  report "this is now here"); per-user access to restricted rooms.</li>
+</ul>
+
+<h2>Voice and interaction design</h2>
+<ul>
+  <li><b>Hands-free voice.</b> Speech goes to ElevenLabs Scribe Realtime with the building's room names as keyterms;
+  a small Haiku rewriter fixes transcription slips before the Guide. Replies are streamed as grounded sentences to
+  ElevenLabs TTS, with a fact-free "let me check" first (first sound ≈ 2.3 s); the user can interrupt at any time.</li>
+  <li><b>Ask only what changes the answer.</b> For an ambiguous place the Guide runs the solver for each candidate;
+  if the answers agree it just answers, otherwise it asks one short question with ≤ 3 options.</li>
+  <li><b>Profile once, remember always.</b> "I use a wheelchair" sets a profile used by every later route; a
+  deterministic cue detector backs the model up if it forgets.</li>
+  <li><b>Measured.</b> An interaction eval has Claude play six tricky users (first day, wheelchair, facility manager,
+  voice technician, typo + change of mind, Turkish speaker) and a judge score the brief's rubric 1–5: asks only
+  what it needs 4.67, shows what it understood 4.83, directions 4.17, remembers 5.00.</li>
+</ul>
+
+<h2>Sunday benchmark</h2>
+<p>One command from the repo root, no manual steps; documented in <code>SUBMISSION/BENCHMARK.md</code>:</p>
+<pre>uv sync
+uv run --env-file .env python -m agent.run_benchmark_v1 &lt;building_dir&gt; &lt;questions&gt; SUBMISSION/answers.json</pre>
+<p>Each answer carries the reply, the located room/item id, and for routes the ordered <code>space_path</code> /
+<code>element_path</code> and length in metres. Without an API key (<code>PARSER_MODE=regex</code>) the run is fully
+deterministic and offline. Nothing is tuned to a building or question id: the same parser and solvers run on any
+building in the kit format. Scores with the official <code>benchmark/score.py</code>: dev 138/138, train 515/517
+(the two misses name a room whose name several rooms share); the 145 test questions are answered by the same command.</p>
+
+<h2>Tech stack</h2>
+<table>
+  <tr><th>Layer</th><th>Technology</th></tr>
+  <tr><td>Core</td><td>Python 3.12, uv, shapely (geometry), networkx (graph + Dijkstra), numpy</td></tr>
+  <tr><td>Backend</td><td>FastAPI + uvicorn, Server-Sent Events, OpenAI-compatible <code>/v1/chat/completions</code>; Vercel Python runtime</td></tr>
+  <tr><td>AI</td><td>Anthropic API — Claude Opus 5.5 (Guide, Builder, parser fallback), Haiku 5.5 (voice rewriter); prompt caching, tool use, structured outputs</td></tr>
+  <tr><td>Voice</td><td>ElevenLabs Scribe Realtime (STT) and Flash v2.5 (TTS); Web Speech API as fallback</td></tr>
+  <tr><td>Frontend</td><td>React 19, TypeScript, Vite, three.js + react-three-fiber + drei, MapLibre GL, lucide icons</td></tr>
+  <tr><td>Data</td><td>Supabase Postgres + Auth (conversations, drafts, saved buildings, accounts); kit dataset in <code>data/</code></td></tr>
+  <tr><td>Quality</td><td>pytest suite (solvers vs. all train/dev answers, routes, parser, Guide conversations, edits, API), scripted live Guide and interaction evals; every commit checked by an independent verifier agent</td></tr>
+</table>
+
+<div class="foot">Repository: github.com/atahankilc/industrial-agents-hackathon · Our code MIT; kit code and data keep their
+own licences (NOTICE.md); building data derived from OpenStreetMap © OpenStreetMap contributors, ODbL.</div>
+</body>
+</html>

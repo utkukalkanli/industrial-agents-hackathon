@@ -8,6 +8,18 @@ related: [project-state.md, decisions.md, open-questions.md]
 
 [Memory bank](README.md)
 
+## 2026-10-31 — Portfolio README and GitHub About
+
+- **Did:** Rewrote `README.md` as a project showcase (hero screenshot, badges, results table, mermaid architecture,
+  features, tech stack, run commands, repo map, team). Screenshots of the live app in `assets/` (`hero.jpg`,
+  `map.jpg`) plus `assets/logo.svg` (copy of the favicon). Committed `docs/submission/` (technical explanation),
+  which the README links. GitHub repo description and 15 topics set with `gh repo edit`; homepage unchanged.
+  `.playwright-mcp/` gitignored.
+- **Learned:** `llm_cache/decisions.json` is not in the repo, although `SUBMISSION/BENCHMARK.md` and
+  `agent/llm_cache.py` say it is committed; the README does not claim key-free replay. Production `/api/tts` and
+  `/api/stt/token` return 502: ElevenLabs answers 401 "Invalid API key" (app falls back to the browser voice).
+- **Next:** fix or rotate `ELEVENLABS_API_KEY` on Vercel; fix the stale cache claim in BENCHMARK.md.
+
 ## 2026-10-28 18:00 — The three deferred MINOR findings on dae9d7c fixed
 
 - **Did:** (1) the Creator no longer spends its one `NUDGE` on a reply cut off by the token limit: such a reply gets
